@@ -76,7 +76,7 @@ struct AddAccountView: View {
       }
     }
     .padding()
-    .frame(width: 300, height: 220)
+    .frame(width: 300)
   }
 
   private func addAccount() {

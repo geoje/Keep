@@ -3,7 +3,7 @@ import SwiftUI
 
 struct ContentView: View {
   @Environment(\.modelContext) private var modelContext
-  @Query private var accounts: [Account]
+  @Query(sort: \Account.email, order: .forward) private var accounts: [Account]
   @State private var showingAddAccount = false
   @State private var hoveredAccountEmail: String?
   @State private var selectedAccount: Account?
@@ -34,16 +34,27 @@ struct ContentView: View {
           ForEach(accounts) { account in
             HStack(spacing: 12) {
               Circle()
-                .fill(Color.gray.opacity(0.3))
+                .fill(Color.gray.opacity(0.15))
                 .frame(width: 40, height: 40)
                 .overlay {
-                  Text(String(account.email.prefix(1).uppercased()))
-                    .font(.headline)
-                    .foregroundStyle(.primary)
+                  Image(systemName: "person.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(.gray)
                 }
 
-              Text(account.email)
-                .font(.body)
+              VStack(alignment: .leading, spacing: 4) {
+                Text(account.email)
+                  .font(.body)
+
+                HStack(spacing: 4) {
+                  Image(systemName: "document")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                  Text("0")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+              }
 
               Spacer()
             }
