@@ -7,12 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		854AEDD92F295E0A00A928C5 /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 854AEDD82F295E0A00A928C5 /* Note.swift */; };
+		854AEDDB2F295E3800A928C5 /* GoogleKeepService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 854AEDDA2F295E3800A928C5 /* GoogleKeepService.swift */; };
 		856592882F280176001C338B /* GoogleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 856592872F280176001C338B /* GoogleAuthService.swift */; };
 		859B90592F257381009BCA5A /* ModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 859B90572F257381009BCA5A /* ModelContainer.swift */; };
 		859B905B2F2575CA009BCA5A /* Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = 859B905A2F2575CA009BCA5A /* Account.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		854AEDD82F295E0A00A928C5 /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
+		854AEDDA2F295E3800A928C5 /* GoogleKeepService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleKeepService.swift; sourceTree = "<group>"; };
 		856592872F280176001C338B /* GoogleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthService.swift; sourceTree = "<group>"; };
 		859B902F2F255006009BCA5A /* Keep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Keep.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		859B90572F257381009BCA5A /* ModelContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelContainer.swift; sourceTree = "<group>"; };
@@ -59,6 +63,7 @@
 		859B90422F256BA8009BCA5A /* Service */ = {
 			isa = PBXGroup;
 			children = (
+				854AEDDA2F295E3800A928C5 /* GoogleKeepService.swift */,
 				856592872F280176001C338B /* GoogleAuthService.swift */,
 			);
 			path = Service;
@@ -67,6 +72,7 @@
 		859B90582F257381009BCA5A /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				854AEDD82F295E0A00A928C5 /* Note.swift */,
 				859B905A2F2575CA009BCA5A /* Account.swift */,
 				859B90572F257381009BCA5A /* ModelContainer.swift */,
 			);
@@ -147,7 +153,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				854AEDD92F295E0A00A928C5 /* Note.swift in Sources */,
 				856592882F280176001C338B /* GoogleAuthService.swift in Sources */,
+				854AEDDB2F295E3800A928C5 /* GoogleKeepService.swift in Sources */,
 				859B905B2F2575CA009BCA5A /* Account.swift in Sources */,
 				859B90592F257381009BCA5A /* ModelContainer.swift in Sources */,
 			);

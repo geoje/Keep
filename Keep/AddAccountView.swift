@@ -102,12 +102,10 @@ struct AddAccountView: View {
   private func addAccount() {
     isLoading = true
     let authService = GoogleAuthService()
-    let androidId = "0123456789abcdef"
 
     authService.getMasterToken(
       email: email,
-      oauthToken: oauthToken,
-      androidId: androidId
+      oauthToken: oauthToken
     ) { masterToken, errorMessage in
       DispatchQueue.main.async {
         isLoading = false
