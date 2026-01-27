@@ -149,7 +149,7 @@ struct ContentView: View {
   ]
 
   for (index, email) in emails.enumerated() {
-    let account = Account(email: email, avatar: "oauth2_token_\(index)")
+    let account = Account(email: email, avatar: "", masterToken: "aas_et/\(index)")
     context.insert(account)
   }
 

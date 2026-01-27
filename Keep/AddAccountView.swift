@@ -7,6 +7,8 @@ struct AddAccountView: View {
 
   @State private var email: String = ""
   @State private var oauthToken: String = ""
+  @State private var isLoading = false
+  @State private var errorMessage: String? = nil
 
   var body: some View {
     VStack(spacing: 12) {
@@ -68,21 +70,59 @@ struct AddAccountView: View {
         }
         .keyboardShortcut(.cancelAction)
 
-        Button("Add") {
+        Button(action: {
           addAccount()
+        }) {
+          if isLoading {
+            ProgressView()
+              .controlSize(.small)
+          } else {
+            Text("Add")
+          }
         }
         .keyboardShortcut(.defaultAction)
-        .disabled(email.isEmpty || oauthToken.isEmpty)
+        .disabled(isLoading || email.isEmpty || oauthToken.isEmpty)
       }
     }
     .padding()
     .frame(width: 300)
+    .alert(
+      "⚠️ Authentication Error",
+      isPresented: Binding(
+        get: { errorMessage != nil },
+        set: { if !$0 { errorMessage = nil } }
+      )
+    ) {
+      Button("OK") {}
+    } message: {
+      Text(errorMessage ?? "Unknown error")
+    }
   }
 
   private func addAccount() {
-    let newAccount = Account(email: email, avatar: oauthToken)
-    modelContext.insert(newAccount)
-    dismiss()
+    isLoading = true
+    let authService = GoogleAuthService()
+    let androidId = "0123456789abcdef"
+
+    authService.getMasterToken(
+      email: email,
+      oauthToken: oauthToken,
+      androidId: androidId
+    ) { masterToken, errorMessage in
+      DispatchQueue.main.async {
+        isLoading = false
+        if let masterToken = masterToken {
+          print("✅ Successfully obtained master token: \(masterToken)")
+          let newAccount = Account(email: email, avatar: "", masterToken: masterToken)
+          modelContext.insert(newAccount)
+          try? modelContext.save()
+          dismiss()
+        } else if let errorMessage = errorMessage {
+          print("❌ Error obtaining master token: \(errorMessage)")
+          self.errorMessage = errorMessage
+        }
+      }
+    }
   }
 }
 

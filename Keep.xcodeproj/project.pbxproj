@@ -7,11 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		856592882F280176001C338B /* GoogleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 856592872F280176001C338B /* GoogleAuthService.swift */; };
 		859B90592F257381009BCA5A /* ModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 859B90572F257381009BCA5A /* ModelContainer.swift */; };
 		859B905B2F2575CA009BCA5A /* Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = 859B905A2F2575CA009BCA5A /* Account.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		856592872F280176001C338B /* GoogleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthService.swift; sourceTree = "<group>"; };
 		859B902F2F255006009BCA5A /* Keep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Keep.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		859B90572F257381009BCA5A /* ModelContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelContainer.swift; sourceTree = "<group>"; };
 		859B905A2F2575CA009BCA5A /* Account.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Account.swift; sourceTree = "<group>"; };
@@ -57,6 +59,7 @@
 		859B90422F256BA8009BCA5A /* Service */ = {
 			isa = PBXGroup;
 			children = (
+				856592872F280176001C338B /* GoogleAuthService.swift */,
 			);
 			path = Service;
 			sourceTree = "<group>";
@@ -144,6 +147,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				856592882F280176001C338B /* GoogleAuthService.swift in Sources */,
 				859B905B2F2575CA009BCA5A /* Account.swift in Sources */,
 				859B90592F257381009BCA5A /* ModelContainer.swift in Sources */,
 			);
@@ -283,7 +287,17 @@
 				DEVELOPMENT_TEAM = YV459B6BC7;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -293,7 +307,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14;
 				MARKETING_VERSION = 26.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = kr.ygh.keep;
+				PRODUCT_BUNDLE_IDENTIFIER = kr.ygh.Keep;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -316,7 +330,17 @@
 				DEVELOPMENT_TEAM = YV459B6BC7;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -326,7 +350,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14;
 				MARKETING_VERSION = 26.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = kr.ygh.keep;
+				PRODUCT_BUNDLE_IDENTIFIER = kr.ygh.Keep;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
