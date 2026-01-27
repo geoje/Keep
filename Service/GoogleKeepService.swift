@@ -8,18 +8,14 @@ class GoogleKeepService {
     masterToken: String,
     completion: @escaping (Result<(String, Date), Error>) -> Void
   ) {
+    print("🔐 Fetching access token for: \(email)")
     var request = URLRequest(url: URL(string: "https://android.clients.google.com/auth")!)
     request.httpMethod = "POST"
     request.allHTTPHeaderFields = [
-      "Accept-Encoding": "gzip, deflate",
-      "Accept": "*/*",
-      "Connection": "keep-alive",
-      "Content-Type": "application/json",
+      "Accept-Encoding": "identity",
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": "GoogleAuth/1.4",
     ]
-    request.setValue("GoogleAuth/1.4", forHTTPHeaderField: "User-Agent")
-    request.addValue("identity", forHTTPHeaderField: "Accept-Encoding")
-    request.addValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-
     request.httpBody = [
       "accountType": "HOSTED_OR_GOOGLE",
       "Email": email,
@@ -41,6 +37,13 @@ class GoogleKeepService {
       let encodedValue = "\(value)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!
       return "\(encodedKey)=\(encodedValue)"
     }.joined(separator: "&").data(using: .utf8)
+
+    print("📤 Request URL: \(request.url?.absoluteString ?? "")")
+    print("📤 Request Method: \(request.httpMethod ?? "")")
+    print("📤 Request Headers: \(request.allHTTPHeaderFields ?? [:])")
+    if let bodyData = request.httpBody, let bodyString = String(data: bodyData, encoding: .utf8) {
+      print("📤 Request Body: \(bodyString)")
+    }
 
     URLSession.shared.dataTask(with: request) { data, response, error in
       if let error = error {
@@ -67,9 +70,12 @@ class GoogleKeepService {
           expiry = Date(timeIntervalSince1970: epoch)
         }
 
+        print("✅ Access token received: \(authToken.prefix(20))...")
+        print("⏰ Expiry: \(expiry)")
         completion(.success((authToken, expiry)))
       } else {
         let errorDetail = responseDict["Error"] ?? "Unknown error"
+        print("❌ Failed to get OAuth token: \(errorDetail)")
         let error = NSError(
           domain: "GoogleKeepService", code: 1,
           userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth token: \(errorDetail)"])
@@ -95,12 +101,10 @@ class GoogleKeepService {
     var request = URLRequest(url: URL(string: "https://www.googleapis.com/notes/v1/changes")!)
     request.httpMethod = "POST"
     request.allHTTPHeaderFields = [
-      "Accept-Encoding": "gzip, deflate",
-      "Accept": "*/*",
-      "Connection": "keep-alive",
-      "Content-Type": "application/json",
       "Authorization": "OAuth \(accessToken)",
-      "User-Agent": "x-mackeep (https://github.com/geoje/mackeep)",
+      "Accept-Encoding": "gzip, deflate",
+      "Content-Type": "application/json",
+      "User-Agent": "github.com/geoje/keep",
     ]
 
     let formatter = ISO8601DateFormatter()
@@ -134,11 +138,10 @@ class GoogleKeepService {
       }
 
       guard let data = data else {
-        completion(
-          .failure(
-            NSError(
-              domain: "GoogleKeepService", code: 0,
-              userInfo: [NSLocalizedDescriptionKey: "No data received"])))
+        let error = NSError(
+          domain: "GoogleAuthService", code: 1,
+          userInfo: [NSLocalizedDescriptionKey: "No data received"])
+        completion(.failure(error))
         return
       }
 

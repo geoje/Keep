@@ -41,12 +41,10 @@ class GoogleAuthService {
       }
 
       guard let data = data, let responseText = String(data: data, encoding: .utf8) else {
-        completion(
-          .failure(
-            NSError(
-              domain: "GoogleAuthService", code: 0,
-              userInfo: [NSLocalizedDescriptionKey: "No data received or failed to decode response"]
-            )))
+        let error = NSError(
+          domain: "GoogleAuthService", code: 1,
+          userInfo: [NSLocalizedDescriptionKey: "No data received"])
+        completion(.failure(error))
         return
       }
 
