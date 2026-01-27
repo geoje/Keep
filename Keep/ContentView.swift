@@ -78,6 +78,7 @@ struct ContentView: View {
                 selectedAccount = nil
               } else {
                 selectedAccount = account
+                fetchAccessToken(for: account)
               }
             }
           }
@@ -126,6 +127,21 @@ struct ContentView: View {
     }
     .sheet(isPresented: $showingAddAccount) {
       AddAccountView()
+    }
+  }
+
+  private func fetchAccessToken(for account: Account) {
+    let service = GoogleKeepService()
+    service.getAccessToken(email: account.email, masterToken: account.masterToken) { result in
+      DispatchQueue.main.async {
+        switch result {
+        case .success((let token, let expiry)):
+          account.accessToken = token
+          account.accessTokenExpiry = expiry
+        case .failure:
+          break
+        }
+      }
     }
   }
 }

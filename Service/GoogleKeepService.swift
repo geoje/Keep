@@ -6,7 +6,7 @@ class GoogleKeepService {
   func getAccessToken(
     email: String,
     masterToken: String,
-    completion: @escaping (Result<(String, Date?), Error>) -> Void
+    completion: @escaping (Result<(String, Date), Error>) -> Void
   ) {
     var request = URLRequest(url: URL(string: "https://android.clients.google.com/auth")!)
     request.httpMethod = "POST"
@@ -60,14 +60,14 @@ class GoogleKeepService {
       let responseDict = self.parseResponse(responseText)
 
       if let authToken = responseDict["Auth"] {
-        var expiryDate: Date? = nil
+        var expiry: Date = Date(timeIntervalSince1970: 0)
         if let expiresIn = responseDict["ExpiresInDurationSec"], let seconds = Double(expiresIn) {
-          expiryDate = Date().addingTimeInterval(seconds)
+          expiry = Date().addingTimeInterval(seconds)
         } else if let expiryEpoch = responseDict["Expiry"], let epoch = Double(expiryEpoch) {
-          expiryDate = Date(timeIntervalSince1970: epoch)
+          expiry = Date(timeIntervalSince1970: epoch)
         }
 
-        completion(.success((authToken, expiryDate)))
+        completion(.success((authToken, expiry)))
       } else {
         let errorDetail = responseDict["Error"] ?? "Unknown error"
         let error = NSError(

@@ -106,18 +106,17 @@ struct AddAccountView: View {
     authService.getMasterToken(
       email: email,
       oauthToken: oauthToken
-    ) { masterToken, errorMessage in
+    ) { result in
       DispatchQueue.main.async {
         isLoading = false
-        if let masterToken = masterToken {
-          print("✅ Successfully obtained master token: \(masterToken)")
+        switch result {
+        case .success(let masterToken):
           let newAccount = Account(email: email, avatar: "", masterToken: masterToken)
           modelContext.insert(newAccount)
           try? modelContext.save()
           dismiss()
-        } else if let errorMessage = errorMessage {
-          print("❌ Error obtaining master token: \(errorMessage)")
-          self.errorMessage = errorMessage
+        case .failure(let error):
+          self.errorMessage = error.localizedDescription
         }
       }
     }
