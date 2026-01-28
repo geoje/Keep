@@ -11,6 +11,7 @@
 		854AEDDB2F295E3800A928C5 /* GoogleKeepService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 854AEDDA2F295E3800A928C5 /* GoogleKeepService.swift */; };
 		855BC98B2F2A9E1500C91D85 /* AccountService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 855BC98A2F2A9E1500C91D85 /* AccountService.swift */; };
 		856592882F280176001C338B /* GoogleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 856592872F280176001C338B /* GoogleAuthService.swift */; };
+		856775972F2AA5C8002AB6AB /* NoteService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 856775962F2AA5C8002AB6AB /* NoteService.swift */; };
 		859B90592F257381009BCA5A /* ModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 859B90572F257381009BCA5A /* ModelContainer.swift */; };
 		859B905B2F2575CA009BCA5A /* Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = 859B905A2F2575CA009BCA5A /* Account.swift */; };
 /* End PBXBuildFile section */
@@ -20,6 +21,7 @@
 		854AEDDA2F295E3800A928C5 /* GoogleKeepService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleKeepService.swift; sourceTree = "<group>"; };
 		855BC98A2F2A9E1500C91D85 /* AccountService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountService.swift; sourceTree = "<group>"; };
 		856592872F280176001C338B /* GoogleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthService.swift; sourceTree = "<group>"; };
+		856775962F2AA5C8002AB6AB /* NoteService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteService.swift; sourceTree = "<group>"; };
 		859B902F2F255006009BCA5A /* Keep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Keep.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		859B90572F257381009BCA5A /* ModelContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelContainer.swift; sourceTree = "<group>"; };
 		859B905A2F2575CA009BCA5A /* Account.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Account.swift; sourceTree = "<group>"; };
@@ -65,6 +67,7 @@
 		859B90422F256BA8009BCA5A /* Service */ = {
 			isa = PBXGroup;
 			children = (
+				856775962F2AA5C8002AB6AB /* NoteService.swift */,
 				855BC98A2F2A9E1500C91D85 /* AccountService.swift */,
 				854AEDDA2F295E3800A928C5 /* GoogleKeepService.swift */,
 				856592872F280176001C338B /* GoogleAuthService.swift */,
@@ -159,6 +162,7 @@
 				855BC98B2F2A9E1500C91D85 /* AccountService.swift in Sources */,
 				854AEDD92F295E0A00A928C5 /* Note.swift in Sources */,
 				856592882F280176001C338B /* GoogleAuthService.swift in Sources */,
+				856775972F2AA5C8002AB6AB /* NoteService.swift in Sources */,
 				854AEDDB2F295E3800A928C5 /* GoogleKeepService.swift in Sources */,
 				859B905B2F2575CA009BCA5A /* Account.swift in Sources */,
 				859B90592F257381009BCA5A /* ModelContainer.swift in Sources */,

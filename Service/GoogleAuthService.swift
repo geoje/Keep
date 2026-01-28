@@ -2,11 +2,10 @@ import Foundation
 
 class GoogleAuthService {
 
-  func getMasterToken(
+  func fetchMasterToken(
     email: String,
-    oauthToken: String,
-    completion: @escaping (Result<String, Error>) -> Void
-  ) {
+    oauthToken: String
+  ) async throws -> String {
     var request = URLRequest(url: URL(string: "https://android.clients.google.com/auth")!)
     request.httpMethod = "POST"
     request.allHTTPHeaderFields = [
@@ -34,42 +33,31 @@ class GoogleAuthService {
       "droidguard_results": "dummy123",
     ].map { "\($0.key)=\($0.value)" }.joined(separator: "&").data(using: .utf8)
 
-    URLSession.shared.dataTask(with: request) { data, response, error in
-      if let error = error {
-        completion(.failure(error))
-        return
-      }
+    let (data, _) = try await URLSession.shared.data(for: request)
 
-      guard let data = data, let responseText = String(data: data, encoding: .utf8) else {
-        completion(
-          .failure(
-            NSError(
-              domain: "GoogleAuthService", code: 1,
-              userInfo: [NSLocalizedDescriptionKey: "No data received"])))
-        return
-      }
-      let responseDict = self.parseResponse(responseText)
+    guard let responseText = String(data: data, encoding: .utf8) else {
+      throw NSError(
+        domain: "GoogleAuthService", code: 1,
+        userInfo: [NSLocalizedDescriptionKey: "No data received"])
+    }
+    let responseDict = self.parseResponse(responseText)
 
-      if let masterToken = responseDict["Token"] {
-        completion(.success(masterToken))
-      } else {
-        completion(
-          .failure(
-            NSError(
-              domain: "GoogleAuthService", code: 1,
-              userInfo: [
-                NSLocalizedDescriptionKey:
-                  "Failed to get master token: \(responseDict["Error"] ?? "Unknown error")"
-              ])))
-      }
-    }.resume()
+    if let masterToken = responseDict["Token"] {
+      return masterToken
+    } else {
+      throw NSError(
+        domain: "GoogleAuthService", code: 1,
+        userInfo: [
+          NSLocalizedDescriptionKey:
+            "Failed to get master token: \(responseDict["Error"] ?? "Unknown error")"
+        ])
+    }
   }
 
-  func getAccessToken(
+  func fetchAccessToken(
     email: String,
-    masterToken: String,
-    completion: @escaping (Result<(String, Date), Error>) -> Void
-  ) {
+    masterToken: String
+  ) async throws -> (String, Date) {
     var request = URLRequest(url: URL(string: "https://android.clients.google.com/auth")!)
     request.httpMethod = "POST"
     request.allHTTPHeaderFields = [
@@ -101,42 +89,32 @@ class GoogleAuthService {
       return "\(encodedKey)=\(encodedValue)"
     }.joined(separator: "&").data(using: .utf8)
 
-    URLSession.shared.dataTask(with: request) { data, response, error in
-      if let error = error {
-        completion(.failure(error))
-        return
+    let (data, _) = try await URLSession.shared.data(for: request)
+
+    guard let responseText = String(data: data, encoding: .utf8) else {
+      throw NSError(
+        domain: "GoogleAuthService", code: 1,
+        userInfo: [NSLocalizedDescriptionKey: "No data received"])
+    }
+    let responseDict = self.parseResponse(responseText)
+
+    if let authToken = responseDict["Auth"] {
+      var expiry: Date = Date(timeIntervalSince1970: 0)
+      if let expiresIn = responseDict["ExpiresInDurationSec"], let seconds = Double(expiresIn) {
+        expiry = Date().addingTimeInterval(seconds)
+      } else if let expiryEpoch = responseDict["Expiry"], let epoch = Double(expiryEpoch) {
+        expiry = Date(timeIntervalSince1970: epoch)
       }
 
-      guard let data = data, let responseText = String(data: data, encoding: .utf8) else {
-        completion(
-          .failure(
-            NSError(
-              domain: "GoogleAuthService", code: 1,
-              userInfo: [NSLocalizedDescriptionKey: "No data received"])))
-        return
-      }
-      let responseDict = self.parseResponse(responseText)
-
-      if let authToken = responseDict["Auth"] {
-        var expiry: Date = Date(timeIntervalSince1970: 0)
-        if let expiresIn = responseDict["ExpiresInDurationSec"], let seconds = Double(expiresIn) {
-          expiry = Date().addingTimeInterval(seconds)
-        } else if let expiryEpoch = responseDict["Expiry"], let epoch = Double(expiryEpoch) {
-          expiry = Date(timeIntervalSince1970: epoch)
-        }
-
-        completion(.success((authToken, expiry)))
-      } else {
-        completion(
-          .failure(
-            NSError(
-              domain: "GoogleAuthService", code: 1,
-              userInfo: [
-                NSLocalizedDescriptionKey:
-                  "Failed to get access token: \(responseDict["Error"] ?? "Unknown error")"
-              ])))
-      }
-    }.resume()
+      return (authToken, expiry)
+    } else {
+      throw NSError(
+        domain: "GoogleAuthService", code: 1,
+        userInfo: [
+          NSLocalizedDescriptionKey:
+            "Failed to get access token: \(responseDict["Error"] ?? "Unknown error")"
+        ])
+    }
   }
 
   private func parseResponse(_ responseText: String) -> [String: String] {

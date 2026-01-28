@@ -5,9 +5,8 @@ class GoogleKeepService {
 
   func fetchNotes(
     email: String,
-    accessToken: String,
-    completion: @escaping (Result<[Note], Error>) -> Void
-  ) {
+    accessToken: String
+  ) async throws -> [Note] {
     var request = URLRequest(url: URL(string: "https://www.googleapis.com/notes/v1/changes")!)
     request.httpMethod = "POST"
     request.allHTTPHeaderFields = [
@@ -33,32 +32,21 @@ class GoogleKeepService {
         ],
       ],
     ]
+    request.httpBody = try JSONSerialization.data(withJSONObject: requestBody, options: [])
 
-    do {
-      request.httpBody = try JSONSerialization.data(withJSONObject: requestBody, options: [])
-    } catch {
-      completion(.failure(error))
-      return
+    let (data, _) = try await URLSession.shared.data(for: request)
+
+    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+      let nodesArray = json["nodes"] as? [[String: Any]]
+    else {
+      return []
     }
 
-    URLSession.shared.dataTask(with: request) { data, response, error in
-      if let error = error {
-        completion(.failure(error))
-        return
-      }
+    let notes = try nodesArray.map { nodeDict in
+      return try Note.from(dict: nodeDict, email: email)
+    }
 
-      guard let data = data else {
-        let error = NSError(
-          domain: "GoogleAuthService", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "No data received"])
-        completion(.failure(error))
-        return
-      }
-
-      print(data)
-
-      completion(.success([]))
-    }.resume()
+    return notes
   }
 
   private func generateClientSessionId() -> String {

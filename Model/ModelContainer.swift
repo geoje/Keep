@@ -3,7 +3,8 @@ import SwiftData
 extension ModelContainer {
   static let shared: ModelContainer = {
     let schema = Schema([
-      Account.self
+      Account.self,
+      Note.self,
     ])
     let modelConfiguration = ModelConfiguration(schema: schema)
 

@@ -71,7 +71,9 @@ struct AddAccountView: View {
         .keyboardShortcut(.cancelAction)
 
         Button(action: {
-          addAccount()
+          Task {
+            await addAccount()
+          }
         }) {
           if isLoading {
             ProgressView()
@@ -99,31 +101,19 @@ struct AddAccountView: View {
     }
   }
 
-  private func addAccount() {
+  private func addAccount() async {
     isLoading = true
     let authService = GoogleAuthService()
 
-    authService.getMasterToken(
-      email: email,
-      oauthToken: oauthToken
-    ) { result in
-      DispatchQueue.main.async {
-        isLoading = false
-        switch result {
-        case .success(let masterToken):
-          let newAccount = Account(email: email, avatar: "", masterToken: masterToken)
-          modelContext.insert(newAccount)
-          try? modelContext.save()
-          dismiss()
-        case .failure(let error):
-          self.errorMessage = error.localizedDescription
-        }
-      }
+    do {
+      let masterToken = try await authService.fetchMasterToken(email: email, oauthToken: oauthToken)
+      let newAccount = Account(email: email, avatar: "", masterToken: masterToken)
+      modelContext.insert(newAccount)
+      try modelContext.save()
+      dismiss()
+    } catch {
+      self.errorMessage = error.localizedDescription
     }
+    isLoading = false
   }
-}
-
-#Preview {
-  AddAccountView()
-    .modelContainer(for: Account.self, inMemory: true)
 }

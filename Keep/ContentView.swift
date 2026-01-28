@@ -4,13 +4,17 @@ import SwiftUI
 struct ContentView: View {
   @Environment(\.modelContext) private var modelContext
   @Query(sort: \Account.email, order: .forward) private var accounts: [Account]
+  @Query private var notes: [Note]
 
   @State private var showingAddAccount = false
   @State private var hoveredAccountEmail: String?
   @State private var selectedAccount: Account?
   @State private var showDeleteConfirm = false
+  @State private var isLoadingNotes = false
+  @State private var errorMessage: String? = nil
 
   private var accountService: AccountService { AccountService() }
+  private var noteService: NoteService { NoteService() }
 
   var body: some View {
     Group {
@@ -46,16 +50,33 @@ struct ContentView: View {
                 }
 
               VStack(alignment: .leading, spacing: 4) {
-                Text(account.email)
-                  .font(.body)
+                HStack(spacing: 8) {
+                  Text(account.email)
+                    .font(.body)
 
-                HStack(spacing: 4) {
-                  Image(systemName: "document")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                  Text("0")
+                  if isLoadingNotes {
+                    ProgressView()
+                      .controlSize(.small)
+                      .frame(width: 12, height: 12)
+                  } else if errorMessage != nil {
+                    Image(systemName: "exclamationmark.triangle")
+                      .foregroundColor(.yellow)
+                  }
+                }
+
+                if let errorMessage = errorMessage {
+                  Text(errorMessage)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                } else {
+                  HStack(spacing: 4) {
+                    Image(systemName: "document")
+                      .font(.system(size: 12))
+                      .foregroundStyle(.secondary)
+                    Text("\(notes.filter { $0.email == account.email }.count)")
+                      .font(.caption)
+                      .foregroundStyle(.secondary)
+                  }
                 }
               }
 
@@ -81,7 +102,26 @@ struct ContentView: View {
                 selectedAccount = nil
               } else {
                 selectedAccount = account
-                accountService.getAccessToken(for: account) { _ in }
+                errorMessage = nil
+                isLoadingNotes = true
+                Task {
+                  do {
+                    let fetchedNotes = try await noteService.getNotes(for: account)
+                    let existingNotes = try modelContext.fetch(FetchDescriptor<Note>()).filter {
+                      $0.email == account.email
+                    }
+                    for note in existingNotes {
+                      modelContext.delete(note)
+                    }
+                    for note in fetchedNotes {
+                      modelContext.insert(note)
+                    }
+                    try modelContext.save()
+                  } catch {
+                    errorMessage = error.localizedDescription
+                  }
+                  isLoadingNotes = false
+                }
               }
             }
           }

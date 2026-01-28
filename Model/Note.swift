@@ -1,122 +1,71 @@
 import Foundation
 import SwiftData
 
-nonisolated struct Timestamps: Codable {
-  var kind: String = ""
-  var created: String = ""
-  var updated: String = ""
-  var trashed: String = ""
-  var userEdited: String = ""
-}
-
-nonisolated struct NodeSettings: Codable {
-  var newListItemPlacement: String = ""
-  var checkedListItemsPolicy: String = ""
-  var graveyardState: String = ""
-}
-
-nonisolated struct AnnotationsGroup: Codable {
-  var kind: String = ""
-  var annotations: [Annotation] = []
-}
-
-nonisolated struct Annotation: Codable {
-  var id: String = ""
-  var deleted: String = ""
-  var topicCategory: TopicCategory?
-  var webLink: WebLink?
-}
-
-nonisolated struct TopicCategory: Codable {
-  var category: String = ""
-}
-
-nonisolated struct WebLink: Codable {
-  var kind: String = ""
-  var url: String = ""
-  var title: String = ""
-  var description: String = ""
-  var provenanceUrl: String = ""
-}
-
-nonisolated struct Background: Codable {
-  var name: String = ""
-  var origin: String = ""
-}
-
 @Model
 final class Note {
-  var email: String
-  var id: String
-  var kind: String
-  var serverId: String
-  var parentId: String
-  var parentServerId: String
-  var type: String
-  var timestamps: Timestamps
-  var title: String
-  var text: String
-  var nodeSettings: NodeSettings
-  var isArchived: Bool
-  var isPinned: Bool
-  var color: String
-  var sortValue: String
-  var annotationsGroup: AnnotationsGroup
-  var lastModifierEmail: String
-  var moved: String
-  var background: Background
-  var baseNoteRevision: String
-  var xplatModel: Bool
-  var representation: String
-  var checked: Bool
+  var email: String = ""
+  var id: String = ""
+  var kind: String = ""
+  var parentId: String = ""
+  var type: String = ""
+  var trashed: Date? = Date(timeIntervalSince1970: 0)
+  var title: String = ""
+  var text: String = ""
+  var isArchived: Bool = false
+  var color: String = ""
+  var sortValue: Int = 0
+  var checked: Bool = false
 
   init(
-    email: String,
-    id: String,
+    email: String = "",
+    id: String = "",
     kind: String = "",
-    serverId: String = "",
     parentId: String = "",
-    parentServerId: String = "",
     type: String = "",
-    timestamps: Timestamps = Timestamps(),
+    trashed: Date? = Date(timeIntervalSince1970: 0),
     title: String = "",
     text: String = "",
-    nodeSettings: NodeSettings = NodeSettings(),
     isArchived: Bool = false,
-    isPinned: Bool = false,
     color: String = "",
-    sortValue: String = "",
-    annotationsGroup: AnnotationsGroup = AnnotationsGroup(),
-    lastModifierEmail: String = "",
-    moved: String = "",
-    background: Background = Background(),
-    baseNoteRevision: String = "",
-    xplatModel: Bool = false,
-    representation: String = "",
+    sortValue: Int = 0,
     checked: Bool = false
   ) {
     self.email = email
     self.id = id
     self.kind = kind
-    self.serverId = serverId
     self.parentId = parentId
-    self.parentServerId = parentServerId
     self.type = type
-    self.timestamps = timestamps
+    self.trashed = trashed
     self.title = title
     self.text = text
-    self.nodeSettings = nodeSettings
     self.isArchived = isArchived
-    self.isPinned = isPinned
     self.color = color
     self.sortValue = sortValue
-    self.annotationsGroup = annotationsGroup
-    self.lastModifierEmail = lastModifierEmail
-    self.moved = moved
-    self.background = background
-    self.baseNoteRevision = baseNoteRevision
-    self.xplatModel = xplatModel
-    self.representation = representation
     self.checked = checked
+  }
+
+  static func from(dict: [String: Any], email: String) throws -> Note {
+    let timestampsDict = (dict["timestamps"] as? [String: Any]) ?? [:]
+
+    let dateFormatter = ISO8601DateFormatter()
+    dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    let trashedString = timestampsDict["trashed"] as? String
+    let trashed =
+      trashedString.flatMap { dateFormatter.date(from: $0) } ?? Date(timeIntervalSince1970: 0)
+
+    return Note(
+      email: email,
+      id: dict["id"] as? String ?? "",
+      kind: dict["kind"] as? String ?? "",
+      parentId: dict["parentId"] as? String ?? "",
+      type: dict["type"] as? String ?? "",
+      trashed: trashed,
+      title: dict["title"] as? String ?? "",
+      text: dict["text"] as? String ?? "",
+      isArchived: dict["isArchived"] as? Bool ?? false,
+      color: dict["color"] as? String ?? "",
+      sortValue: dict["sortValue"] as? Int ?? 0,
+      checked: dict["checked"] as? Bool ?? false
+    )
   }
 }
