@@ -7,16 +7,30 @@ final class Account {
   var avatar: String = ""
   var masterToken: String = ""
   var accessToken: String = ""
-  var accessTokenExpiry: Date = Date(timeIntervalSince1970: 0)
+  var accessTokenExpiry: String = ""
 
   init(
     email: String, avatar: String = "", masterToken: String = "", accessToken: String = "",
-    accessTokenExpiry: Date = Date(timeIntervalSince1970: 0)
+    accessTokenExpiry: String = ""
   ) {
     self.email = email
     self.avatar = avatar
     self.masterToken = masterToken
     self.accessToken = accessToken
     self.accessTokenExpiry = accessTokenExpiry
+  }
+
+  func isAccessTokenExpired() -> Bool {
+    guard !accessTokenExpiry.isEmpty else { return true }
+    let dateFormatter = ISO8601DateFormatter()
+    dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    guard let expiryDate = dateFormatter.date(from: accessTokenExpiry) else { return true }
+    return Date() > expiryDate
+  }
+
+  func setAccessTokenExpiry(date: Date) {
+    let dateFormatter = ISO8601DateFormatter()
+    dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    self.accessTokenExpiry = dateFormatter.string(from: date)
   }
 }

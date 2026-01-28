@@ -73,7 +73,7 @@ struct ContentView: View {
                     Image(systemName: "document")
                       .font(.system(size: 12))
                       .foregroundStyle(.secondary)
-                    Text("\(notes.filter { $0.email == account.email }.count)")
+                    Text("\(noteService.getRootCount(notes: notes, email: account.email))")
                       .font(.caption)
                       .foregroundStyle(.secondary)
                   }

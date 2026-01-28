@@ -9,4 +9,11 @@ class NoteService {
     let notes = try await keepService.fetchNotes(email: account.email, accessToken: accessToken)
     return notes
   }
+
+  func getRootCount(notes: [Note], email: String) -> Int {
+    notes.filter {
+      $0.email == email && $0.parentId == "root" && !$0.isArchived
+        && $0.trashed.first != Character("2")
+    }.count
+  }
 }

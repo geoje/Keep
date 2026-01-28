@@ -8,12 +8,12 @@ final class Note {
   var kind: String = ""
   var parentId: String = ""
   var type: String = ""
-  var trashed: Date? = Date(timeIntervalSince1970: 0)
+  var trashed: String = ""
   var title: String = ""
   var text: String = ""
   var isArchived: Bool = false
   var color: String = ""
-  var sortValue: Int = 0
+  var sortValue: String = ""
   var checked: Bool = false
 
   init(
@@ -22,12 +22,12 @@ final class Note {
     kind: String = "",
     parentId: String = "",
     type: String = "",
-    trashed: Date? = Date(timeIntervalSince1970: 0),
+    trashed: String = "",
     title: String = "",
     text: String = "",
     isArchived: Bool = false,
     color: String = "",
-    sortValue: Int = 0,
+    sortValue: String = "",
     checked: Bool = false
   ) {
     self.email = email
@@ -50,8 +50,7 @@ final class Note {
     let dateFormatter = ISO8601DateFormatter()
     dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     let trashedString = timestampsDict["trashed"] as? String
-    let trashed =
-      trashedString.flatMap { dateFormatter.date(from: $0) } ?? Date(timeIntervalSince1970: 0)
+    let trashed = trashedString ?? ""
 
     return Note(
       email: email,
@@ -64,7 +63,7 @@ final class Note {
       text: dict["text"] as? String ?? "",
       isArchived: dict["isArchived"] as? Bool ?? false,
       color: dict["color"] as? String ?? "",
-      sortValue: dict["sortValue"] as? Int ?? 0,
+      sortValue: dict["sortValue"] as? String ?? "",
       checked: dict["checked"] as? Bool ?? false
     )
   }
