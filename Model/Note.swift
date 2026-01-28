@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-struct Timestamps: Codable {
+nonisolated struct Timestamps: Codable {
   var kind: String = ""
   var created: String = ""
   var updated: String = ""
@@ -9,29 +9,29 @@ struct Timestamps: Codable {
   var userEdited: String = ""
 }
 
-struct NodeSettings: Codable {
+nonisolated struct NodeSettings: Codable {
   var newListItemPlacement: String = ""
   var checkedListItemsPolicy: String = ""
   var graveyardState: String = ""
 }
 
-struct AnnotationsGroup: Codable {
+nonisolated struct AnnotationsGroup: Codable {
   var kind: String = ""
   var annotations: [Annotation] = []
 }
 
-struct Annotation: Codable {
+nonisolated struct Annotation: Codable {
   var id: String = ""
   var deleted: String = ""
   var topicCategory: TopicCategory?
   var webLink: WebLink?
 }
 
-struct TopicCategory: Codable {
+nonisolated struct TopicCategory: Codable {
   var category: String = ""
 }
 
-struct WebLink: Codable {
+nonisolated struct WebLink: Codable {
   var kind: String = ""
   var url: String = ""
   var title: String = ""
@@ -39,7 +39,7 @@ struct WebLink: Codable {
   var provenanceUrl: String = ""
 }
 
-struct Background: Codable {
+nonisolated struct Background: Codable {
   var name: String = ""
   var origin: String = ""
 }

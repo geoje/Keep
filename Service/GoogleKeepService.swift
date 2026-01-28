@@ -55,6 +55,8 @@ class GoogleKeepService {
         return
       }
 
+      print(data)
+
       completion(.success([]))
     }.resume()
   }
