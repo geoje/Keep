@@ -131,7 +131,7 @@ struct ContentView: View {
   }
 
   private func fetchAccessToken(for account: Account) {
-    let service = GoogleKeepService()
+    let service = GoogleAuthService()
     service.getAccessToken(email: account.email, masterToken: account.masterToken) { result in
       DispatchQueue.main.async {
         switch result {
