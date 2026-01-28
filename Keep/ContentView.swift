@@ -4,10 +4,13 @@ import SwiftUI
 struct ContentView: View {
   @Environment(\.modelContext) private var modelContext
   @Query(sort: \Account.email, order: .forward) private var accounts: [Account]
+
   @State private var showingAddAccount = false
   @State private var hoveredAccountEmail: String?
   @State private var selectedAccount: Account?
   @State private var showDeleteConfirm = false
+
+  private var accountService: AccountService { AccountService() }
 
   var body: some View {
     Group {
@@ -78,7 +81,7 @@ struct ContentView: View {
                 selectedAccount = nil
               } else {
                 selectedAccount = account
-                fetchAccessToken(for: account)
+                accountService.getAccessToken(for: account) { _ in }
               }
             }
           }
@@ -129,46 +132,4 @@ struct ContentView: View {
       AddAccountView()
     }
   }
-
-  private func fetchAccessToken(for account: Account) {
-    let service = GoogleAuthService()
-    service.getAccessToken(email: account.email, masterToken: account.masterToken) { result in
-      DispatchQueue.main.async {
-        switch result {
-        case .success((let token, let expiry)):
-          account.accessToken = token
-          account.accessTokenExpiry = expiry
-        case .failure:
-          break
-        }
-      }
-    }
-  }
-}
-
-#Preview {
-  let container = try! ModelContainer(
-    for: Account.self,
-    configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-  )
-  let context = container.mainContext
-
-  let emails = [
-    "alice@google.com",
-    "bob@gmail.com",
-    "charlie@outlook.com",
-    "david@icloud.com",
-    "emma@yahoo.com",
-    "frank@proton.me",
-    "grace@hotmail.com",
-    "henry@example.com",
-  ]
-
-  for (index, email) in emails.enumerated() {
-    let account = Account(email: email, avatar: "", masterToken: "aas_et/\(index)")
-    context.insert(account)
-  }
-
-  return ContentView()
-    .modelContainer(container)
 }
