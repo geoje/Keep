@@ -41,21 +41,26 @@ class GoogleAuthService {
       }
 
       guard let data = data, let responseText = String(data: data, encoding: .utf8) else {
-        let error = NSError(
-          domain: "GoogleAuthService", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "No data received"])
-        completion(.failure(error))
+        completion(
+          .failure(
+            NSError(
+              domain: "GoogleAuthService", code: 1,
+              userInfo: [NSLocalizedDescriptionKey: "No data received"])))
         return
       }
-
       let responseDict = self.parseResponse(responseText)
+
       if let masterToken = responseDict["Token"] {
         completion(.success(masterToken))
       } else {
-        let errorDetail = responseDict["Error"] ?? "Unknown error"
-        let error = NSError(
-          domain: "GoogleAuthService", code: 1, userInfo: [NSLocalizedDescriptionKey: errorDetail])
-        completion(.failure(error))
+        completion(
+          .failure(
+            NSError(
+              domain: "GoogleAuthService", code: 1,
+              userInfo: [
+                NSLocalizedDescriptionKey:
+                  "Failed to get master token: \(responseDict["Error"] ?? "Unknown error")"
+              ])))
       }
     }.resume()
   }
@@ -106,9 +111,8 @@ class GoogleAuthService {
         completion(
           .failure(
             NSError(
-              domain: "GoogleKeepService", code: 0,
-              userInfo: [NSLocalizedDescriptionKey: "No data received or failed to decode response"]
-            )))
+              domain: "GoogleAuthService", code: 1,
+              userInfo: [NSLocalizedDescriptionKey: "No data received"])))
         return
       }
       let responseDict = self.parseResponse(responseText)
@@ -123,11 +127,14 @@ class GoogleAuthService {
 
         completion(.success((authToken, expiry)))
       } else {
-        let errorDetail = responseDict["Error"] ?? "Unknown error"
-        let error = NSError(
-          domain: "GoogleKeepService", code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get OAuth token: \(errorDetail)"])
-        completion(.failure(error))
+        completion(
+          .failure(
+            NSError(
+              domain: "GoogleAuthService", code: 1,
+              userInfo: [
+                NSLocalizedDescriptionKey:
+                  "Failed to get access token: \(responseDict["Error"] ?? "Unknown error")"
+              ])))
       }
     }.resume()
   }
