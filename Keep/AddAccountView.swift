@@ -61,11 +61,24 @@ struct AddAccountView: View {
             }
           }
         }
-        TextField("oauth2_4/", text: $oauthToken)
-          .textFieldStyle(.roundedBorder)
-          .textContentType(.oneTimeCode)
-          .disableAutocorrection(true)
-          .padding(.horizontal, 0)
+        ZStack(alignment: .topLeading) {
+          TextEditor(text: $oauthToken)
+            .padding(.vertical, 8)
+            .frame(height: 60)
+            .background(
+              RoundedRectangle(cornerRadius: 4)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+            )
+            .scrollDisabled(true)
+            .scrollIndicators(.hidden)
+          if oauthToken.isEmpty {
+            Text("oauth2_4/")
+              .padding(5)
+              .font(.system(size: 11))
+              .foregroundColor(.gray)
+              .allowsHitTesting(false)
+          }
+        }
       }
 
       Spacer()
@@ -123,4 +136,9 @@ struct AddAccountView: View {
     }
     isLoading = false
   }
+}
+
+#Preview {
+  AddAccountView()
+    .modelContainer(for: Account.self)
 }

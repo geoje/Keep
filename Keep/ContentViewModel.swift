@@ -27,12 +27,7 @@ class ContentViewModel: ObservableObject {
       loadingStates[account.email] = true
       Task {
         do {
-          async let fetchedNotesTask = noteService.getNotes(for: account)
-          async let profileURLTask: String? =
-            account.picture.isEmpty
-            ? peopleService.fetchProfileURL(accessToken: account.accessToken) : nil
-
-          let fetchedNotes = try await fetchedNotesTask
+          let fetchedNotes = try await noteService.getNotes(for: account)
           let existingNotes = try modelContext.fetch(FetchDescriptor<Note>()).filter {
             $0.email == account.email
           }
@@ -44,8 +39,11 @@ class ContentViewModel: ObservableObject {
           }
           try modelContext.save()
 
-          if account.picture.isEmpty {
-            if let profileURL = try await profileURLTask {
+          if account.picture.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if let profileURL = try await peopleService.fetchProfileURL(
+              accessToken: account.accessToken),
+              !profileURL.isEmpty
+            {
               account.picture = profileURL
               try modelContext.save()
             }
