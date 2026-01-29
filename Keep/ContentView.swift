@@ -47,7 +47,9 @@ struct ContentView: View {
         }
       }
       .sheet(isPresented: $showingAddAccount) {
-        AddAccountView()
+        AddAccountView { account in
+          viewModel.selectAccount(account, modelContext: modelContext)
+        }
       }
   }
 }

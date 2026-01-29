@@ -10,6 +10,12 @@ struct AddAccountView: View {
   @State private var isLoading = false
   @State private var errorMessage: String? = nil
 
+  let onAccountAdded: ((Account) -> Void)?
+
+  init(onAccountAdded: ((Account) -> Void)? = nil) {
+    self.onAccountAdded = onAccountAdded
+  }
+
   var body: some View {
     VStack(spacing: 12) {
       Text("Add Account")
@@ -110,6 +116,7 @@ struct AddAccountView: View {
       let newAccount = Account(email: email, avatar: "", masterToken: masterToken)
       modelContext.insert(newAccount)
       try modelContext.save()
+      onAccountAdded?(newAccount)
       dismiss()
     } catch {
       self.errorMessage = error.localizedDescription
