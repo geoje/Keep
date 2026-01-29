@@ -31,7 +31,7 @@ struct AddAccountView: View {
           Text("Email")
             .font(.headline)
         }
-        TextField("example@google.com", text: $email)
+        TextField("example@gmail.com", text: $email)
           .textFieldStyle(.roundedBorder)
           .padding(.horizontal, 0)
       }
@@ -61,7 +61,7 @@ struct AddAccountView: View {
             }
           }
         }
-        SecureField("oauth2_4/", text: $oauthToken)
+        TextField("oauth2_4/", text: $oauthToken)
           .textFieldStyle(.roundedBorder)
           .textContentType(.oneTimeCode)
           .disableAutocorrection(true)
@@ -113,7 +113,7 @@ struct AddAccountView: View {
 
     do {
       let masterToken = try await authService.fetchMasterToken(email: email, oauthToken: oauthToken)
-      let newAccount = Account(email: email, avatar: "", masterToken: masterToken)
+      let newAccount = Account(email: email, picture: "", masterToken: masterToken)
       modelContext.insert(newAccount)
       try modelContext.save()
       onAccountAdded?(newAccount)

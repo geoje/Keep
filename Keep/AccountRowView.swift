@@ -15,14 +15,54 @@ struct AccountRowView: View {
 
   var body: some View {
     HStack(spacing: 12) {
-      Circle()
-        .fill(Color.gray.opacity(0.15))
-        .frame(width: 40, height: 40)
-        .overlay {
-          Image(systemName: "person.fill")
-            .font(.system(size: 18))
-            .foregroundStyle(.gray)
+      if !account.picture.isEmpty {
+        AsyncImage(url: URL(string: account.picture)) { phase in
+          switch phase {
+          case .empty:
+            Circle()
+              .fill(Color.gray.opacity(0.15))
+              .frame(width: 40, height: 40)
+              .overlay {
+                Image(systemName: "person.fill")
+                  .font(.system(size: 18))
+                  .foregroundStyle(.gray)
+              }
+          case .success(let image):
+            image
+              .resizable()
+              .scaledToFill()
+              .frame(width: 40, height: 40)
+              .clipShape(Circle())
+          case .failure:
+            Circle()
+              .fill(Color.gray.opacity(0.15))
+              .frame(width: 40, height: 40)
+              .overlay {
+                Image(systemName: "person.fill")
+                  .font(.system(size: 18))
+                  .foregroundStyle(.gray)
+              }
+          @unknown default:
+            Circle()
+              .fill(Color.gray.opacity(0.15))
+              .frame(width: 40, height: 40)
+              .overlay {
+                Image(systemName: "person.fill")
+                  .font(.system(size: 18))
+                  .foregroundStyle(.gray)
+              }
+          }
         }
+      } else {
+        Circle()
+          .fill(Color.gray.opacity(0.15))
+          .frame(width: 40, height: 40)
+          .overlay {
+            Image(systemName: "person.fill")
+              .font(.system(size: 18))
+              .foregroundStyle(.gray)
+          }
+      }
 
       VStack(alignment: .leading, spacing: 4) {
         HStack(spacing: 8) {

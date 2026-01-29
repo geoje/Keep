@@ -11,9 +11,11 @@ class ContentViewModel: ObservableObject {
   @Published var errorMessages: [String: String] = [:]
 
   private var noteService: NoteService
+  private var peopleService: GooglePeopleService
 
   init() {
     self.noteService = NoteService()
+    self.peopleService = GooglePeopleService()
   }
 
   func selectAccount(_ account: Account, modelContext: ModelContext) {
@@ -25,7 +27,12 @@ class ContentViewModel: ObservableObject {
       loadingStates[account.email] = true
       Task {
         do {
-          let fetchedNotes = try await noteService.getNotes(for: account)
+          async let fetchedNotesTask = noteService.getNotes(for: account)
+          async let profileURLTask: String? =
+            account.picture.isEmpty
+            ? peopleService.fetchProfileURL(accessToken: account.accessToken) : nil
+
+          let fetchedNotes = try await fetchedNotesTask
           let existingNotes = try modelContext.fetch(FetchDescriptor<Note>()).filter {
             $0.email == account.email
           }
@@ -36,6 +43,13 @@ class ContentViewModel: ObservableObject {
             modelContext.insert(note)
           }
           try modelContext.save()
+
+          if account.picture.isEmpty {
+            if let profileURL = try await profileURLTask {
+              account.picture = profileURL
+              try modelContext.save()
+            }
+          }
         } catch {
           errorMessages[account.email] = error.localizedDescription
         }
