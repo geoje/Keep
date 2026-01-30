@@ -1,3 +1,4 @@
+import Foundation
 import SwiftData
 
 extension ModelContainer {
@@ -6,7 +7,14 @@ extension ModelContainer {
       Account.self,
       Note.self,
     ])
-    let modelConfiguration = ModelConfiguration(schema: schema)
+    let bundleID = Bundle.main.bundleIdentifier ?? "kr.ygh.keep"
+    let appSupportURL = FileManager.default.urls(
+      for: .applicationSupportDirectory, in: .userDomainMask
+    ).first!
+    let dbFolderURL = appSupportURL.appendingPathComponent(bundleID)
+    try? FileManager.default.createDirectory(at: dbFolderURL, withIntermediateDirectories: true)
+    let url = dbFolderURL.appendingPathComponent("default.sqlite")
+    let modelConfiguration = ModelConfiguration(schema: schema, url: url)
 
     do {
       return try ModelContainer(for: schema, configurations: [modelConfiguration])
