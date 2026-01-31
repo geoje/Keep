@@ -49,9 +49,6 @@ struct NoteAppIntent: WidgetConfigurationIntent {
   static var title: LocalizedStringResource { "Note" }
   static var description: IntentDescription { "Get quick access to one of your notes" }
 
-  @Parameter(title: LocalizedStringResource("Selected Account"))
-  var selectedAccount: String?
-
   @Parameter(
     title: LocalizedStringResource("Selected Note"), optionsProvider: NoteEntitiesProvider())
   var selectedNote: NoteEntity?
