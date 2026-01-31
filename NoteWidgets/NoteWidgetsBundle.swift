@@ -5,6 +5,5 @@ import WidgetKit
 struct NoteWidgetsBundle: WidgetBundle {
   var body: some Widget {
     NoteWidget()
-    FolderWidget()
   }
 }
