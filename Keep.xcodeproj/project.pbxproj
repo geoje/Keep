@@ -51,11 +51,21 @@
 			);
 			target = 85C16FF02F2E60550030AABC /* NoteWidgetsExtension */;
 		};
+		85C170592F2E71A50030AABC /* Exceptions for "Keep" folder in "NoteWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Assets.xcassets,
+			);
+			target = 85C16FF02F2E60550030AABC /* NoteWidgetsExtension */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		859B90312F255006009BCA5A /* Keep */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				85C170592F2E71A50030AABC /* Exceptions for "Keep" folder in "NoteWidgetsExtension" target */,
+			);
 			path = Keep;
 			sourceTree = "<group>";
 		};
