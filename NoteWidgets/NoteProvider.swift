@@ -8,22 +8,27 @@ struct NoteProvider: AppIntentTimelineProvider {
   }
 
   func snapshot(for configuration: NoteAppIntent, in context: Context) async -> NoteEntry {
-    return NoteEntry(date: Date(), configuration: configuration, notes: createSampleNotes())
+    return NoteEntry(date: Date(), configuration: configuration, notes: createSampleNotes(for: configuration.selectedAccount))
   }
 
   func timeline(for configuration: NoteAppIntent, in context: Context) async -> Timeline<
     NoteEntry
   > {
-    let entry = NoteEntry(date: Date(), configuration: configuration, notes: createSampleNotes())
+    let entry = NoteEntry(date: Date(), configuration: configuration, notes: createSampleNotes(for: configuration.selectedAccount))
     return Timeline(entries: [entry], policy: .never)
   }
 
-  private func createSampleNotes() -> [Note] {
-    return [
+  private func createSampleNotes(for selectedAccount: String?) -> [Note] {
+    let allNotes = [
       Note(email: "boy@gmail.com", id: "1", title: "NoteTitle1", text: "NoteText1"),
       Note(email: "boy@gmail.com", id: "2", title: "NoteTitle2", text: "NoteText2"),
       Note(email: "girl@gmail.com", id: "3", title: "NoteTitle3", text: "NoteText3"),
       Note(email: "girl@gmail.com", id: "4", title: "NoteTitle4", text: "NoteText4"),
     ]
+    if let selectedAccount = selectedAccount {
+      return allNotes.filter { $0.email == selectedAccount }
+    } else {
+      return allNotes
+    }
   }
 }
