@@ -53,3 +53,25 @@ struct ContentView: View {
       }
   }
 }
+
+#Preview("Empty Accounts") {
+  ContentView()
+    .modelContainer(for: [Account.self, Note.self], inMemory: true)
+}
+
+#Preview("With Accounts") {
+  let container = try! ModelContainer(
+    for: Schema([Account.self, Note.self]),
+    configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]
+  )
+
+  for account in [
+    Account(email: "boy@gmail.com", picture: "https://cdn-icons-png.flaticon.com/128/16683/16683419.png"),
+    Account(email: "girl@gmail.com", picture: "https://cdn-icons-png.flaticon.com/128/16683/16683451.png")
+  ] {
+    container.mainContext.insert(account)
+  }
+
+  return ContentView()
+    .modelContainer(container)
+}
