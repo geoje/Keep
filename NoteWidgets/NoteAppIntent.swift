@@ -1,4 +1,5 @@
 import AppIntents
+import SwiftData
 import WidgetKit
 
 struct NoteEntity: AppEntity {
@@ -22,17 +23,33 @@ struct NoteEntity: AppEntity {
   }
 }
 
+actor NoteModelActor: ModelActor {
+  let modelContainer: ModelContainer
+  let modelExecutor: any ModelExecutor
+  let modelContext: ModelContext
+
+  init(modelContainer: ModelContainer) {
+    self.modelContainer = modelContainer
+    self.modelContext = ModelContext(modelContainer)
+    self.modelExecutor = DefaultSerialModelExecutor(modelContext: modelContext)
+  }
+
+  func fetchNotes() throws -> [NoteEntity] {
+    let descriptor = FetchDescriptor<Note>()
+    let notes = try modelContext.fetch(descriptor)
+    return notes.map { note in
+      NoteEntity(id: note.id, title: note.title, subtitle: note.text, email: note.email)
+    }
+  }
+}
+
 struct NoteEntitiesProvider: EntityQuery {
   typealias Entity = NoteEntity
   typealias Result = [NoteEntity]
 
   func results() async throws -> [NoteEntity] {
-    return [
-      NoteEntity(id: "1", title: "NoteTitle1", subtitle: "NoteText1", email: "boy@gmail.com"),
-      NoteEntity(id: "2", title: "NoteTitle2", subtitle: "NoteText2", email: "boy@gmail.com"),
-      NoteEntity(id: "3", title: "NoteTitle3", subtitle: "NoteText3", email: "girl@gmail.com"),
-      NoteEntity(id: "4", title: "NoteTitle4", subtitle: "NoteText4", email: "girl@gmail.com"),
-    ]
+    let actor = NoteModelActor(modelContainer: ModelContainer.shared)
+    return try await actor.fetchNotes()
   }
 
   func suggestedEntities() async throws -> [NoteEntity] {

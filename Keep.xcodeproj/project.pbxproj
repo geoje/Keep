@@ -47,6 +47,8 @@
 		850573842F2E99FA0039EDE2 /* Exceptions for "Model" folder in "NoteWidgetsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Account.swift,
+				ModelContainer.swift,
 				Note.swift,
 			);
 			target = 85C16FF02F2E60550030AABC /* NoteWidgetsExtension */;
