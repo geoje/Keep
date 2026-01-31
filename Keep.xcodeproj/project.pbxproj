@@ -6,9 +6,52 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		85C16FF42F2E60550030AABC /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 85C16FF32F2E60550030AABC /* WidgetKit.framework */; };
+		85C16FF62F2E60550030AABC /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 85C16FF52F2E60550030AABC /* SwiftUI.framework */; };
+		85C170032F2E60560030AABC /* NoteWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 85C16FF12F2E60550030AABC /* NoteWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		85C170012F2E60560030AABC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 859B90272F255006009BCA5A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 85C16FF02F2E60550030AABC;
+			remoteInfo = NoteWidgetsExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		85C170042F2E60560030AABC /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				85C170032F2E60560030AABC /* NoteWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		859B902F2F255006009BCA5A /* Keep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Keep.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		85C16FF12F2E60550030AABC /* NoteWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NoteWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		85C16FF32F2E60550030AABC /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		85C16FF52F2E60550030AABC /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		85C170072F2E60560030AABC /* Exceptions for "NoteWidgets" folder in "NoteWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 85C16FF02F2E60550030AABC /* NoteWidgetsExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		859B90312F255006009BCA5A /* Keep */ = {
@@ -26,6 +69,14 @@
 			path = Model;
 			sourceTree = "<group>";
 		};
+		85C16FF72F2E60550030AABC /* NoteWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				85C170072F2E60560030AABC /* Exceptions for "NoteWidgets" folder in "NoteWidgetsExtension" target */,
+			);
+			path = NoteWidgets;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -33,6 +84,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		85C16FEE2F2E60550030AABC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				85C16FF62F2E60550030AABC /* SwiftUI.framework in Frameworks */,
+				85C16FF42F2E60550030AABC /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -45,6 +105,8 @@
 				85B320002F2BF68200CC523E /* Model */,
 				85B31FF82F2BF67500CC523E /* Service */,
 				859B90312F255006009BCA5A /* Keep */,
+				85C16FF72F2E60550030AABC /* NoteWidgets */,
+				85C16FF22F2E60550030AABC /* Frameworks */,
 				859B90302F255006009BCA5A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -53,8 +115,18 @@
 			isa = PBXGroup;
 			children = (
 				859B902F2F255006009BCA5A /* Keep.app */,
+				85C16FF12F2E60550030AABC /* NoteWidgetsExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		85C16FF22F2E60550030AABC /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				85C16FF32F2E60550030AABC /* WidgetKit.framework */,
+				85C16FF52F2E60550030AABC /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -67,10 +139,12 @@
 				859B902B2F255006009BCA5A /* Sources */,
 				859B902C2F255006009BCA5A /* Frameworks */,
 				859B902D2F255006009BCA5A /* Resources */,
+				85C170042F2E60560030AABC /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				85C170022F2E60560030AABC /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				859B90312F255006009BCA5A /* Keep */,
@@ -84,6 +158,28 @@
 			productReference = 859B902F2F255006009BCA5A /* Keep.app */;
 			productType = "com.apple.product-type.application";
 		};
+		85C16FF02F2E60550030AABC /* NoteWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 85C170082F2E60560030AABC /* Build configuration list for PBXNativeTarget "NoteWidgetsExtension" */;
+			buildPhases = (
+				85C16FED2F2E60550030AABC /* Sources */,
+				85C16FEE2F2E60550030AABC /* Frameworks */,
+				85C16FEF2F2E60550030AABC /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				85C16FF72F2E60550030AABC /* NoteWidgets */,
+			);
+			name = NoteWidgetsExtension;
+			packageProductDependencies = (
+			);
+			productName = NoteWidgetsExtension;
+			productReference = 85C16FF12F2E60550030AABC /* NoteWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -95,6 +191,9 @@
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					859B902E2F255006009BCA5A = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					85C16FF02F2E60550030AABC = {
 						CreatedOnToolsVersion = 26.2;
 					};
 				};
@@ -114,12 +213,20 @@
 			projectRoot = "";
 			targets = (
 				859B902E2F255006009BCA5A /* Keep */,
+				85C16FF02F2E60550030AABC /* NoteWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		859B902D2F255006009BCA5A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		85C16FEF2F2E60550030AABC /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -136,7 +243,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		85C16FED2F2E60550030AABC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		85C170022F2E60560030AABC /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 85C16FF02F2E60550030AABC /* NoteWidgetsExtension */;
+			targetProxy = 85C170012F2E60560030AABC /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		859B903A2F255008009BCA5A /* Debug */ = {
@@ -355,6 +477,74 @@
 			};
 			name = Release;
 		};
+		85C170052F2E60560030AABC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 20260124.1;
+				DEVELOPMENT_TEAM = YV459B6BC7;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NoteWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NoteWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14;
+				MARKETING_VERSION = 26.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kr.ygh.keep.NoteWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		85C170062F2E60560030AABC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 20260124.1;
+				DEVELOPMENT_TEAM = YV459B6BC7;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NoteWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NoteWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14;
+				MARKETING_VERSION = 26.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kr.ygh.keep.NoteWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -372,6 +562,15 @@
 			buildConfigurations = (
 				859B903D2F255008009BCA5A /* Debug */,
 				859B903E2F255008009BCA5A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		85C170082F2E60560030AABC /* Build configuration list for PBXNativeTarget "NoteWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				85C170052F2E60560030AABC /* Debug */,
+				85C170062F2E60560030AABC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
