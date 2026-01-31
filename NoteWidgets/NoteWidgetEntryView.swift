@@ -2,7 +2,7 @@ import SwiftUI
 import WidgetKit
 
 struct NoteWidgetEntryView: View {
-  var entry: Provider.Entry
+  var entry: NoteEntry
 
   var body: some View {
     VStack {

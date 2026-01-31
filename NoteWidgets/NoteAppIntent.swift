@@ -1,7 +1,7 @@
 import AppIntents
 import WidgetKit
 
-struct ConfigurationAppIntent: WidgetConfigurationIntent {
+struct NoteAppIntent: WidgetConfigurationIntent {
   static var title: LocalizedStringResource { "Configuration" }
   static var description: IntentDescription { "This is an example widget." }
 
