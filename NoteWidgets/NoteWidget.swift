@@ -10,5 +10,7 @@ struct NoteWidget: Widget {
       NoteWidgetEntryView(entry: entry)
         .containerBackground(.fill.tertiary, for: .widget)
     }
+    .configurationDisplayName("DisplayName")
+    .description("Description")
   }
 }
