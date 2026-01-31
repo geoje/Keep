@@ -2,9 +2,10 @@ import AppIntents
 import WidgetKit
 
 struct NoteAppIntent: WidgetConfigurationIntent {
-  static var title: LocalizedStringResource { "Configuration" }
-  static var description: IntentDescription { "This is an example widget." }
+  static var title: LocalizedStringResource { "NoteAppIntent.title" }
+  static var description: IntentDescription { "NoteAppIntent.description" }
 
-  @Parameter(title: "Favorite Emoji", default: "😃")
+  @Parameter(
+    title: "NoteAppIntent.favoriteEmoji.@Parameter.title", default: "NoteAppIntent.favoriteEmoji")
   var favoriteEmoji: String
 }

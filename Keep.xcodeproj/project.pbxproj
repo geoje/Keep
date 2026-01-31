@@ -44,6 +44,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		850573842F2E99FA0039EDE2 /* Exceptions for "Model" folder in "NoteWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Note.swift,
+			);
+			target = 85C16FF02F2E60550030AABC /* NoteWidgetsExtension */;
+		};
 		85C170072F2E60560030AABC /* Exceptions for "NoteWidgets" folder in "NoteWidgetsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -76,6 +83,9 @@
 		};
 		85B320002F2BF68200CC523E /* Model */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				850573842F2E99FA0039EDE2 /* Exceptions for "Model" folder in "NoteWidgetsExtension" target */,
+			);
 			path = Model;
 			sourceTree = "<group>";
 		};

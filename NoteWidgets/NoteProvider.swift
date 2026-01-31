@@ -1,27 +1,28 @@
+import SwiftData
 import SwiftUI
 import WidgetKit
 
 struct NoteProvider: AppIntentTimelineProvider {
   func placeholder(in context: Context) -> NoteEntry {
-    NoteEntry(date: Date(), configuration: NoteAppIntent())
+    return NoteEntry(date: Date(), configuration: NoteAppIntent(), notes: [])
   }
 
   func snapshot(for configuration: NoteAppIntent, in context: Context) async -> NoteEntry {
-    NoteEntry(date: Date(), configuration: configuration)
+    return NoteEntry(date: Date(), configuration: configuration, notes: createSampleNotes())
   }
 
   func timeline(for configuration: NoteAppIntent, in context: Context) async -> Timeline<
     NoteEntry
   > {
-    var entries: [NoteEntry] = []
+    let entry = NoteEntry(date: Date(), configuration: configuration, notes: createSampleNotes())
+    return Timeline(entries: [entry], policy: .never)
+  }
 
-    let currentDate = Date()
-    for hourOffset in 0..<5 {
-      let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset, to: currentDate)!
-      let entry = NoteEntry(date: entryDate, configuration: configuration)
-      entries.append(entry)
-    }
-
-    return Timeline(entries: entries, policy: .atEnd)
+  private func createSampleNotes() -> [Note] {
+    return [
+      Note(title: "Title1", text: "Text1"),
+      Note(title: "Title2", text: "Text2"),
+      Note(title: "Title3", text: "Text3"),
+    ]
   }
 }

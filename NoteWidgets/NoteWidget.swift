@@ -1,5 +1,6 @@
 import SwiftUI
 import WidgetKit
+import AppIntents
 
 struct NoteWidget: Widget {
   let kind: String = "NoteWidget"
@@ -10,7 +11,7 @@ struct NoteWidget: Widget {
       NoteWidgetEntryView(entry: entry)
         .containerBackground(.fill.tertiary, for: .widget)
     }
-    .configurationDisplayName("DisplayName")
-    .description("Description")
+    .configurationDisplayName(NoteAppIntent.title)
+    .description(NoteAppIntent.description.descriptionText)
   }
 }
