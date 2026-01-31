@@ -1,11 +1,53 @@
 import AppIntents
 import WidgetKit
 
+struct NoteOption: AppEntity {
+  let id: String
+  let title: String
+  let subtitle: String
+  let email: String
+
+  static var typeDisplayRepresentation: TypeDisplayRepresentation = "Note"
+
+  var displayRepresentation: DisplayRepresentation {
+    DisplayRepresentation(
+      title: LocalizedStringResource(stringLiteral: "[\(email)] \(title)"),
+      subtitle: LocalizedStringResource(stringLiteral: subtitle))
+  }
+
+  static var defaultQuery: NoteOptionsProvider {
+    NoteOptionsProvider()
+  }
+}
+
+struct NoteOptionsProvider: EntityQuery {
+  typealias Entity = NoteOption
+  typealias Result = [NoteOption]
+
+  func results() async throws -> [NoteOption] {
+    return [
+      NoteOption(id: "1", title: "NoteTitle1", subtitle: "NoteText1", email: "boy@gmail.com"),
+      NoteOption(id: "2", title: "NoteTitle2", subtitle: "NoteText2", email: "boy@gmail.com"),
+      NoteOption(id: "3", title: "NoteTitle3", subtitle: "NoteText3", email: "girl@gmail.com"),
+      NoteOption(id: "4", title: "NoteTitle4", subtitle: "NoteText4", email: "girl@gmail.com"),
+    ]
+  }
+
+  func suggestedEntities() async throws -> [NoteOption] {
+    return try await results()
+  }
+
+  func entities(for identifiers: [String]) async throws -> [NoteOption] {
+    let all = try await results()
+    return all.filter { identifiers.contains($0.id) }
+  }
+}
+
 struct NoteAppIntent: WidgetConfigurationIntent {
-  static var title: LocalizedStringResource { "NoteAppIntent.title" }
-  static var description: IntentDescription { "NoteAppIntent.description" }
+  static var title: LocalizedStringResource { "Note" }
+  static var description: IntentDescription { "Get quick access to one of your notes" }
 
   @Parameter(
-    title: "NoteAppIntent.favoriteEmoji.@Parameter.title", default: "NoteAppIntent.favoriteEmoji")
-  var favoriteEmoji: String
+    title: LocalizedStringResource("Selected Note"), optionsProvider: NoteOptionsProvider())
+  var selectedNote: NoteOption?
 }

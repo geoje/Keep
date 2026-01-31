@@ -20,9 +20,10 @@ struct NoteProvider: AppIntentTimelineProvider {
 
   private func createSampleNotes() -> [Note] {
     return [
-      Note(title: "Title1", text: "Text1"),
-      Note(title: "Title2", text: "Text2"),
-      Note(title: "Title3", text: "Text3"),
+      Note(email: "boy@gmail.com", id: "1", title: "NoteTitle1", text: "NoteText1"),
+      Note(email: "boy@gmail.com", id: "2", title: "NoteTitle2", text: "NoteText2"),
+      Note(email: "girl@gmail.com", id: "3", title: "NoteTitle3", text: "NoteText3"),
+      Note(email: "girl@gmail.com", id: "4", title: "NoteTitle4", text: "NoteText4"),
     ]
   }
 }

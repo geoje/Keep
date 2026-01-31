@@ -6,16 +6,26 @@ struct NoteWidgetEntryView: View {
 
   var body: some View {
     VStack(alignment: .leading) {
-      ForEach(entry.notes, id: \.id) { note in
+      if let selectedNote = entry.configuration.selectedNote {
         VStack(alignment: .leading) {
-          Text(note.title)
+          Text("[\(selectedNote.email)] \(selectedNote.title)")
             .font(.headline)
-          Text(note.text)
+          Text(selectedNote.subtitle)
             .font(.body)
         }
-        .padding(.bottom, 4)
+        .padding()
+      } else {
+        ForEach(entry.notes, id: \.id) { note in
+          VStack(alignment: .leading) {
+            Text(note.title)
+              .font(.headline)
+            Text(note.text)
+              .font(.body)
+          }
+          .padding(.bottom, 4)
+        }
+        .padding()
       }
     }
-    .padding()
   }
 }
