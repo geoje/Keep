@@ -21,11 +21,13 @@ struct NoteEntity: AppEntity {
   let text: String
   let uncheckedItems: [String]
   let checkedItems: [String]
+  let type: String
+  let serverId: String
 
   init(
     id: String, email: String, color: String = "", title: String = "", text: String = "",
     uncheckedItems: [String] = [],
-    checkedItems: [String] = []
+    checkedItems: [String] = [], type: String = "", serverId: String = ""
   ) {
     self.id = id
     self.email = email
@@ -34,6 +36,8 @@ struct NoteEntity: AppEntity {
     self.text = text
     self.uncheckedItems = uncheckedItems
     self.checkedItems = checkedItems
+    self.type = type
+    self.serverId = serverId
   }
 
   static var typeDisplayRepresentation: TypeDisplayRepresentation = "Note"

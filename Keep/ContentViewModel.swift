@@ -1,6 +1,7 @@
 import Combine
 import SwiftData
 import SwiftUI
+import WidgetKit
 
 class ContentViewModel: ObservableObject {
   @Published var hoveredAccountEmail: String?
@@ -27,17 +28,9 @@ class ContentViewModel: ObservableObject {
       loadingStates[account.email] = true
       Task {
         do {
-          let fetchedNotes = try await noteService.getNotes(for: account)
-          let existingNotes = try modelContext.fetch(FetchDescriptor<Note>()).filter {
-            $0.email == account.email
-          }
-          for note in existingNotes {
-            modelContext.delete(note)
-          }
-          for note in fetchedNotes {
-            modelContext.insert(note)
-          }
-          try modelContext.save()
+          try await noteService.syncNotes(for: account, modelContext: modelContext)
+
+          WidgetCenter.shared.reloadAllTimelines()
 
           if account.picture.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             if let profileURL = try await peopleService.fetchProfileURL(

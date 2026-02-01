@@ -5,6 +5,7 @@ import SwiftData
 final class Note {
   var email: String = ""
   var id: String = ""
+  var serviceId: String = ""
   var kind: String = ""
   var parentId: String = ""
   var type: String = ""
@@ -19,6 +20,7 @@ final class Note {
   init(
     email: String = "",
     id: String = "",
+    serviceId: String = "",
     kind: String = "",
     parentId: String = "",
     type: String = "",
@@ -32,6 +34,7 @@ final class Note {
   ) {
     self.email = email
     self.id = id
+    self.serviceId = serviceId
     self.kind = kind
     self.parentId = parentId
     self.type = type
@@ -55,6 +58,7 @@ final class Note {
     return Note(
       email: email,
       id: dict["id"] as? String ?? "",
+      serviceId: dict["serverId"] as? String ?? "",
       kind: dict["kind"] as? String ?? "",
       parentId: dict["parentId"] as? String ?? "",
       type: dict["type"] as? String ?? "",

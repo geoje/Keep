@@ -3,10 +3,11 @@ import SwiftData
 
 class GoogleKeepService {
 
-  func fetchNotes(
+  func syncNotes(
     email: String,
-    accessToken: String
-  ) async throws -> [Note] {
+    accessToken: String,
+    modelContext: ModelContext
+  ) async throws {
     var request = URLRequest(url: URL(string: "https://www.googleapis.com/notes/v1/changes")!)
     request.httpMethod = "POST"
     request.allHTTPHeaderFields = [
@@ -39,14 +40,25 @@ class GoogleKeepService {
     guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
       let nodesArray = json["nodes"] as? [[String: Any]]
     else {
-      return []
+      return
     }
 
     let notes = try nodesArray.map { nodeDict in
       return try Note.from(dict: nodeDict, email: email)
     }
 
-    return notes
+    let existingNotes = try modelContext.fetch(FetchDescriptor<Note>()).filter {
+      $0.email == email
+    }
+    for note in existingNotes {
+      modelContext.delete(note)
+    }
+
+    for note in notes {
+      modelContext.insert(note)
+    }
+
+    try modelContext.save()
   }
 
   private func generateClientSessionId() -> String {

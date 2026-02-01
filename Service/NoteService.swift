@@ -2,12 +2,12 @@ import Foundation
 import SwiftData
 
 class NoteService {
-  func getNotes(for account: Account) async throws -> [Note] {
+  func syncNotes(for account: Account, modelContext: ModelContext) async throws {
     let accountService = AccountService()
     let accessToken = try await accountService.getAccessToken(for: account)
     let keepService = GoogleKeepService()
-    let notes = try await keepService.fetchNotes(email: account.email, accessToken: accessToken)
-    return notes
+    try await keepService.syncNotes(
+      email: account.email, accessToken: accessToken, modelContext: modelContext)
   }
 
   func getRootNotes(notes: [Note], email: String) -> [Note] {
