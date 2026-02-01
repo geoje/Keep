@@ -41,9 +41,9 @@ struct NoteWidgetEntryView: View {
     case "RED": return isDark ? Color(hex: "#77172e") : Color(hex: "#faafa8")
     case "ORANGE": return isDark ? Color(hex: "#692b18") : Color(hex: "#f39f76")
     case "YELLOW": return isDark ? Color(hex: "#7c4b03") : Color(hex: "#fff8b8")
-    case "GREEN": return isDark ? Color(hex: "#264d3b") : Color(hex: "#fff8b8")
-    case "TEAL": return isDark ? Color(hex: "#0d625d") : Color(hex: "#fff8b8")
-    case "CERULEAN": return isDark ? Color(hex: "#266377") : Color(hex: "#fff8b8")
+    case "GREEN": return isDark ? Color(hex: "#264d3b") : Color(hex: "#e2f6d3")
+    case "TEAL": return isDark ? Color(hex: "#0d625d") : Color(hex: "#b4ddd2")
+    case "CERULEAN": return isDark ? Color(hex: "#266377") : Color(hex: "#d4e4ed")
     case "BLUE": return isDark ? Color(hex: "#284254") : Color(hex: "#aeccdc")
     case "PURPLE": return isDark ? Color(hex: "#482e5b") : Color(hex: "#d3bfdb")
     case "PINK": return isDark ? Color(hex: "#6b394f") : Color(hex: "#f6e2dd")
@@ -54,47 +54,49 @@ struct NoteWidgetEntryView: View {
   }
 
   var body: some View {
-    if let note = entry.note {
-      VStack(alignment: .leading, spacing: 4) {
-        if !note.title.isEmpty {
-          Text(note.title)
-            .font(.headline)
-        }
-        if note.uncheckedItems.isEmpty && note.checkedItems.isEmpty {
-          Text(note.text)
-            .font(.body)
-        } else {
-          if !note.uncheckedItems.isEmpty {
-            VStack(alignment: .leading, spacing: 2) {
-              ForEach(note.uncheckedItems, id: \.self) { item in
-                HStack(spacing: 4) {
-                  Image(systemName: "square")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .opacity(0.4)
-                  Text(item)
-                    .font(.body)
+    ZStack {
+      if let note = entry.note {
+        VStack(alignment: .leading, spacing: 4) {
+          if !note.title.isEmpty {
+            Text(note.title)
+              .font(.headline)
+          }
+          if note.uncheckedItems.isEmpty && note.checkedItems.isEmpty {
+            Text(note.text)
+              .font(.body)
+          } else {
+            if !note.uncheckedItems.isEmpty {
+              VStack(alignment: .leading, spacing: 2) {
+                ForEach(note.uncheckedItems, id: \.self) { item in
+                  HStack(spacing: 4) {
+                    Image(systemName: "square")
+                      .font(.body)
+                      .foregroundColor(.secondary)
+                      .opacity(0.4)
+                    Text(item)
+                      .font(.body)
+                  }
                 }
               }
             }
-          }
-          if !note.checkedItems.isEmpty {
-            Text(
-              "+ \(note.checkedItems.count) checked item\(note.checkedItems.count > 1 ? "s" : "")"
-            )
-            .font(.body)
-            .foregroundColor(.secondary)
+            if !note.checkedItems.isEmpty {
+              Text(
+                "+ \(note.checkedItems.count) checked item\(note.checkedItems.count > 1 ? "s" : "")"
+              )
+              .font(.body)
+              .foregroundColor(.secondary)
+            }
           }
         }
+        .foregroundColor(.primary)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+      } else {
+        Text("No selected note")
+          .font(.body)
+          .foregroundColor(.secondary)
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
       }
-      .foregroundColor(.primary)
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-      .background(backgroundColor(for: note.color))
-    } else {
-      Text("No selected note")
-        .font(.body)
-        .foregroundColor(.secondary)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+    .containerBackground(for: .widget) { backgroundColor(for: entry.note?.color ?? "") }
   }
 }
