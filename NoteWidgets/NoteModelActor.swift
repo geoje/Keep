@@ -4,8 +4,8 @@ import WidgetKit
 
 actor NoteModelActor: ModelActor {
   let modelContainer: ModelContainer
-  let modelExecutor: any ModelExecutor
   let modelContext: ModelContext
+  let modelExecutor: any ModelExecutor
 
   init(modelContainer: ModelContainer) {
     self.modelContainer = modelContainer
@@ -22,17 +22,22 @@ actor NoteModelActor: ModelActor {
 
     var entities: [NoteEntity] = []
     for account in accounts {
-      entities.append(
-        NoteEntity(
-          id: account.email, title: "", text: account.email, uncheckedItems: [], checkedItems: []))
       let rootNotes = noteService.getRootNotes(notes: allNotes, email: account.email)
+      entities.append(NoteEntity(id: account.email))
       entities.append(
         contentsOf: rootNotes.map {
           let uncheckedItems = noteService.parseUncheckedItems(notes: allNotes, rootNoteId: $0.id)
           let checkedItems = noteService.parseCheckedItems(notes: allNotes, rootNoteId: $0.id)
-          return NoteEntity(
-            id: $0.id, title: $0.title, text: $0.text, uncheckedItems: uncheckedItems,
-            checkedItems: checkedItems)
+
+          if $0.type == "LIST" {
+            return NoteEntity(
+              id: $0.id, title: $0.title,
+              uncheckedItems: uncheckedItems,
+              checkedItems: checkedItems)
+          } else {
+            return NoteEntity(
+              id: $0.id, title: $0.title, text: uncheckedItems.joined(separator: "\n"))
+          }
         })
     }
 

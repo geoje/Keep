@@ -11,6 +11,17 @@ struct NoteEntity: AppEntity {
   let uncheckedItems: [String]
   let checkedItems: [String]
 
+  init(
+    id: String, title: String = "", text: String = "", uncheckedItems: [String] = [],
+    checkedItems: [String] = []
+  ) {
+    self.id = id
+    self.title = title
+    self.text = text
+    self.uncheckedItems = uncheckedItems
+    self.checkedItems = checkedItems
+  }
+
   static var typeDisplayRepresentation: TypeDisplayRepresentation = "Note"
 
   var displayRepresentation: DisplayRepresentation {
