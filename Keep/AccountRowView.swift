@@ -117,7 +117,7 @@ struct AccountRowView: View {
           Image(systemName: "document")
             .font(.system(size: 12))
             .foregroundStyle(.secondary)
-          Text("\(noteService.getRootCount(notes: notes, email: account.email))")
+          Text("\(noteService.getRootNotes(notes: notes, email: account.email).count)")
             .font(.caption)
             .foregroundStyle(.secondary)
         }

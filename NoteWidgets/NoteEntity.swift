@@ -7,15 +7,30 @@ struct NoteEntity: AppEntity {
 
   let id: String
   let title: String
-  let subtitle: String
-  let email: String
+  let text: String
+  let uncheckedItems: [String]
+  let checkedItems: [String]
 
   static var typeDisplayRepresentation: TypeDisplayRepresentation = "Note"
 
   var displayRepresentation: DisplayRepresentation {
-    DisplayRepresentation(
-      title: LocalizedStringResource(stringLiteral: "[\(email)] \(title)"),
-      subtitle: LocalizedStringResource(stringLiteral: subtitle))
+    let subtitleText: String
+    if !uncheckedItems.isEmpty || !checkedItems.isEmpty {
+      var parts: [String] = []
+      if !uncheckedItems.isEmpty {
+        parts.append(uncheckedItems.map { "□ \($0)" }.joined(separator: "\n"))
+      }
+      if !checkedItems.isEmpty {
+        parts.append(checkedItems.map { "☑ \($0)" }.joined(separator: "\n"))
+      }
+      subtitleText = parts.joined(separator: "\n")
+    } else {
+      subtitleText = text
+    }
+    return DisplayRepresentation(
+      title: LocalizedStringResource(stringLiteral: title),
+      subtitle: LocalizedStringResource(stringLiteral: subtitleText)
+    )
   }
 
   static var defaultQuery: NoteEntitiesProvider {

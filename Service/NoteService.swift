@@ -17,7 +17,11 @@ class NoteService {
     }
   }
 
-  func getRootCount(notes: [Note], email: String) -> Int {
-    getRootNotes(notes: notes, email: email).count
+  func parseUncheckedItems(notes: [Note], rootNoteId: String) -> [String] {
+    notes.filter { $0.parentId == rootNoteId && !$0.checked }.map { $0.text }
+  }
+
+  func parseCheckedItems(notes: [Note], rootNoteId: String) -> [String] {
+    notes.filter { $0.parentId == rootNoteId && $0.checked }.map { $0.text }
   }
 }
