@@ -61,7 +61,7 @@ class ContentViewModel: ObservableObject {
       }
       modelContext.delete(account)
       selectedAccount = nil
-      try modelContext.save()
+      try? modelContext.save()
     }
   }
 }
