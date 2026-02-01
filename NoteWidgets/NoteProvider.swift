@@ -8,7 +8,7 @@ struct NoteProvider: AppIntentTimelineProvider {
       date: Date(), configuration: NoteAppIntent(),
       note: NoteEntity(
         id: "", email: "", title: "Sample Note",
-        text: "This is a sample note for the widget preview."))
+        text: "This is a sample note for the widget preview"))
   }
 
   func snapshot(for configuration: NoteAppIntent, in context: Context) async -> NoteEntry {
@@ -27,12 +27,8 @@ struct NoteProvider: AppIntentTimelineProvider {
   }
 
   private func getDefaultNote() async -> NoteEntity? {
-    let modelContainer = try? ModelContainer(for: Account.self, Note.self)
-    if let modelContainer {
-      let actor = NoteModelActor(modelContainer: modelContainer)
-      let entities = try? await actor.fetchNotes()
-      return entities?.first(where: { !$0.email.isEmpty })
-    }
-    return nil
+    let provider = NoteEntitiesProvider()
+    let entities = try? await provider.suggestedEntities()
+    return entities?.first(where: { !$0.email.isEmpty })
   }
 }
