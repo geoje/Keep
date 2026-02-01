@@ -16,17 +16,20 @@ struct NoteEntity: AppEntity {
 
   let id: String
   let email: String
+  let color: String
   let title: String
   let text: String
   let uncheckedItems: [String]
   let checkedItems: [String]
 
   init(
-    id: String, email: String, title: String = "", text: String = "", uncheckedItems: [String] = [],
+    id: String, email: String, color: String = "", title: String = "", text: String = "",
+    uncheckedItems: [String] = [],
     checkedItems: [String] = []
   ) {
     self.id = id
     self.email = email
+    self.color = color
     self.title = title
     self.text = text
     self.uncheckedItems = uncheckedItems

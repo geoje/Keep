@@ -31,12 +31,12 @@ actor NoteModelActor: ModelActor {
 
           if $0.type == "LIST" {
             return NoteEntity(
-              id: $0.id, email: $0.email, title: $0.title,
+              id: $0.id, email: $0.email, color: $0.color, title: $0.title,
               uncheckedItems: uncheckedItems,
               checkedItems: checkedItems)
           } else {
             return NoteEntity(
-              id: $0.id, email: $0.email, title: $0.title,
+              id: $0.id, email: $0.email, color: $0.color, title: $0.title,
               text: uncheckedItems.joined(separator: "\n"))
           }
         })

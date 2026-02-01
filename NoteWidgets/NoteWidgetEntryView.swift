@@ -1,8 +1,57 @@
 import SwiftUI
 import WidgetKit
 
+extension Color {
+  init(hex: String) {
+    let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+    var int: UInt64 = 0
+    Scanner(string: hex).scanHexInt64(&int)
+    let a: UInt64
+    let r: UInt64
+    let g: UInt64
+    let b: UInt64
+    switch hex.count {
+    case 3:  // RGB (12-bit)
+      (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+    case 6:  // RGB (24-bit)
+      (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+    case 8:  // ARGB (32-bit)
+      (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+    default:
+      (a, r, g, b) = (255, 255, 255, 255)  // Default to white
+    }
+    self.init(
+      .sRGB,
+      red: Double(r) / 255,
+      green: Double(g) / 255,
+      blue: Double(b) / 255,
+      opacity: Double(a) / 255
+    )
+  }
+}
+
 struct NoteWidgetEntryView: View {
+  @Environment(\.colorScheme) var colorScheme
   var entry: NoteEntry
+
+  private func backgroundColor(for color: String) -> Color {
+    let upper = color.uppercased()
+    let isDark = colorScheme == .dark
+    switch upper {
+    case "RED": return isDark ? Color(hex: "#77172e") : Color(hex: "#faafa8")
+    case "ORANGE": return isDark ? Color(hex: "#692b18") : Color(hex: "#f39f76")
+    case "YELLOW": return isDark ? Color(hex: "#7c4b03") : Color(hex: "#fff8b8")
+    case "GREEN": return isDark ? Color(hex: "#264d3b") : Color(hex: "#fff8b8")
+    case "TEAL": return isDark ? Color(hex: "#0d625d") : Color(hex: "#fff8b8")
+    case "CERULEAN": return isDark ? Color(hex: "#266377") : Color(hex: "#fff8b8")
+    case "BLUE": return isDark ? Color(hex: "#284254") : Color(hex: "#aeccdc")
+    case "PURPLE": return isDark ? Color(hex: "#482e5b") : Color(hex: "#d3bfdb")
+    case "PINK": return isDark ? Color(hex: "#6b394f") : Color(hex: "#f6e2dd")
+    case "BROWN": return isDark ? Color(hex: "#4b443a") : Color(hex: "#e9e3d4")
+    case "GRAY": return isDark ? Color(hex: "#232427") : Color(hex: "#efeff1")
+    default: return isDark ? Color(hex: "#202124") : Color(hex: "#ffffff")
+    }
+  }
 
   var body: some View {
     if let note = entry.note {
@@ -38,7 +87,9 @@ struct NoteWidgetEntryView: View {
           }
         }
       }
+      .foregroundColor(.primary)
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+      .background(backgroundColor(for: note.color))
     } else {
       Text("No selected note")
         .font(.body)
