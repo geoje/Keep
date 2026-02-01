@@ -10,10 +10,14 @@ class NoteService {
     return notes
   }
 
-  func getRootCount(notes: [Note], email: String) -> Int {
+  func getRootNotes(notes: [Note], email: String) -> [Note] {
     notes.filter {
       $0.email == email && $0.parentId == "root" && !$0.isArchived
         && $0.trashed.first != Character("2")
-    }.count
+    }
+  }
+
+  func getRootCount(notes: [Note], email: String) -> Int {
+    getRootNotes(notes: notes, email: email).count
   }
 }
