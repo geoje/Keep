@@ -25,23 +25,24 @@ struct NoteEntity: AppEntity {
   static var typeDisplayRepresentation: TypeDisplayRepresentation = "Note"
 
   var displayRepresentation: DisplayRepresentation {
-    let subtitleText: String
+    if id.contains("@") {
+      let title = LocalizedStringResource(stringLiteral: "--- \(id) ---")
+      return DisplayRepresentation(title: title)
+    }
+
+    let subtitle: String
     if !uncheckedItems.isEmpty || !checkedItems.isEmpty {
-      var parts: [String] = []
-      if !uncheckedItems.isEmpty {
-        parts.append(uncheckedItems.map { "□ \($0)" }.joined(separator: "\n"))
-      }
-      if !checkedItems.isEmpty {
-        parts.append(checkedItems.map { "☑ \($0)" }.joined(separator: "\n"))
-      }
-      subtitleText = parts.joined(separator: "\n")
+      subtitle = [
+        uncheckedItems.isEmpty ? nil : uncheckedItems.map { "□ \($0)" }.joined(separator: "\n"),
+        checkedItems.isEmpty ? nil : checkedItems.map { "☑ \($0)" }.joined(separator: "\n"),
+      ].compactMap { $0 }.joined(separator: "\n")
     } else {
-      subtitleText = text
+      subtitle = text
     }
     return DisplayRepresentation(
-      title: LocalizedStringResource(stringLiteral: title),
-      subtitle: LocalizedStringResource(stringLiteral: subtitleText)
-    )
+      title: LocalizedStringResource(stringLiteral: title.isEmpty ? "Untitled" : title),
+      subtitle: LocalizedStringResource(stringLiteral: subtitle),
+      image: DisplayRepresentation.Image(systemName: "document"))
   }
 
   static var defaultQuery: NoteEntitiesProvider {
