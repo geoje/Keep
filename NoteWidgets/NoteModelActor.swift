@@ -23,7 +23,7 @@ actor NoteModelActor: ModelActor {
     var entities: [NoteEntity] = []
     for account in accounts {
       let rootNotes = noteService.getRootNotes(notes: allNotes, email: account.email)
-      entities.append(NoteEntity(id: account.email))
+      entities.append(NoteEntity(id: account.email, email: ""))
       entities.append(
         contentsOf: rootNotes.map {
           let uncheckedItems = noteService.parseUncheckedItems(notes: allNotes, rootNoteId: $0.id)
@@ -31,12 +31,13 @@ actor NoteModelActor: ModelActor {
 
           if $0.type == "LIST" {
             return NoteEntity(
-              id: $0.id, title: $0.title,
+              id: $0.id, email: $0.email, title: $0.title,
               uncheckedItems: uncheckedItems,
               checkedItems: checkedItems)
           } else {
             return NoteEntity(
-              id: $0.id, title: $0.title, text: uncheckedItems.joined(separator: "\n"))
+              id: $0.id, email: $0.email, title: $0.title,
+              text: uncheckedItems.joined(separator: "\n"))
           }
         })
     }

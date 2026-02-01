@@ -5,16 +5,18 @@ struct NoteEntity: AppEntity {
   typealias ID = String
 
   let id: String
+  let email: String
   let title: String
   let text: String
   let uncheckedItems: [String]
   let checkedItems: [String]
 
   init(
-    id: String, title: String = "", text: String = "", uncheckedItems: [String] = [],
+    id: String, email: String, title: String = "", text: String = "", uncheckedItems: [String] = [],
     checkedItems: [String] = []
   ) {
     self.id = id
+    self.email = email
     self.title = title
     self.text = text
     self.uncheckedItems = uncheckedItems
@@ -24,7 +26,7 @@ struct NoteEntity: AppEntity {
   static var typeDisplayRepresentation: TypeDisplayRepresentation = "Note"
 
   var displayRepresentation: DisplayRepresentation {
-    if id.contains("@") {
+    if email.isEmpty {
       let title = LocalizedStringResource(stringLiteral: "--- \(id) ---")
       return DisplayRepresentation(title: title)
     }

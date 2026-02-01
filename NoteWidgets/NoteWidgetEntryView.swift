@@ -5,11 +5,11 @@ struct NoteWidgetEntryView: View {
   var entry: NoteEntry
 
   var body: some View {
-    if let selectedNote = entry.configuration.selectedNote {
-      VStack(alignment: .leading) {
-        Text(selectedNote.title)
+    if let note = entry.note {
+      VStack(alignment: .leading, spacing: 4) {
+        Text(note.title)
           .font(.headline)
-        Text(selectedNote.text)
+        Text(note.text)
           .font(.body)
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
