@@ -7,6 +7,11 @@ struct KeepApp: App {
     WindowGroup {
       NavigationStack {
         ContentView()
+          .onOpenURL { url in
+            if url.scheme == "https" {
+              NSWorkspace.shared.open(url)
+            }
+          }
       }
     }
     .modelContainer(ModelContainer.shared)
