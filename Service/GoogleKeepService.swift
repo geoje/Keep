@@ -37,14 +37,8 @@ class GoogleKeepService {
 
     let (data, _) = try await URLSession.shared.data(for: request)
 
-    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-      let nodesArray = json["nodes"] as? [[String: Any]]
-    else {
+    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
       return
-    }
-
-    let notes = try nodesArray.map { nodeDict in
-      return try Note.from(dict: nodeDict, email: email)
     }
 
     let existingNotes = try modelContext.fetch(FetchDescriptor<Note>()).filter {
@@ -54,8 +48,14 @@ class GoogleKeepService {
       modelContext.delete(note)
     }
 
-    for note in notes {
-      modelContext.insert(note)
+    if let nodesArray = json["nodes"] as? [[String: Any]] {
+      let notes = try nodesArray.map { nodeDict in
+        return try Note.from(dict: nodeDict, email: email)
+      }
+
+      for note in notes {
+        modelContext.insert(note)
+      }
     }
 
     try modelContext.save()

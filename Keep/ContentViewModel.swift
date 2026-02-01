@@ -51,8 +51,17 @@ class ContentViewModel: ObservableObject {
 
   func deleteSelectedAccount(modelContext: ModelContext) {
     if let account = selectedAccount {
+      let existingNotes = try? modelContext.fetch(FetchDescriptor<Note>()).filter {
+        $0.email == account.email
+      }
+      if let notes = existingNotes {
+        for note in notes {
+          modelContext.delete(note)
+        }
+      }
       modelContext.delete(account)
       selectedAccount = nil
+      try modelContext.save()
     }
   }
 }
