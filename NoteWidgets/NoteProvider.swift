@@ -4,35 +4,34 @@ import WidgetKit
 
 struct NoteProvider: AppIntentTimelineProvider {
   func placeholder(in context: Context) -> NoteEntry {
-    return NoteEntry(date: Date(), configuration: NoteAppIntent(), notes: [])
+    return NoteEntry(date: Date(), configuration: NoteAppIntent())
   }
 
   func snapshot(for configuration: NoteAppIntent, in context: Context) async -> NoteEntry {
-    return NoteEntry(
-      date: Date(), configuration: configuration,
-      notes: createSampleNotes(for: configuration.selectedNote))
+    let finalConfiguration = await configurationWithDefaultNote(configuration)
+    return NoteEntry(date: Date(), configuration: finalConfiguration)
   }
 
   func timeline(for configuration: NoteAppIntent, in context: Context) async -> Timeline<
     NoteEntry
   > {
-    let entry = NoteEntry(
-      date: Date(), configuration: configuration,
-      notes: createSampleNotes(for: configuration.selectedNote))
+    let finalConfiguration = await configurationWithDefaultNote(configuration)
+    let entry = NoteEntry(date: Date(), configuration: finalConfiguration)
     return Timeline(entries: [entry], policy: .never)
   }
 
-  private func createSampleNotes(for selectedNote: NoteEntity?) -> [Note] {
-    let allNotes = [
-      Note(email: "boy@gmail.com", id: "1", title: "NoteTitle1", text: "NoteText1"),
-      Note(email: "boy@gmail.com", id: "2", title: "NoteTitle2", text: "NoteText2"),
-      Note(email: "girl@gmail.com", id: "3", title: "NoteTitle3", text: "NoteText3"),
-      Note(email: "girl@gmail.com", id: "4", title: "NoteTitle4", text: "NoteText4"),
-    ]
-    if let selectedNote = selectedNote {
-      return allNotes.filter { $0.id == selectedNote.id }
-    } else {
-      return []
+  private func configurationWithDefaultNote(_ configuration: NoteAppIntent) async -> NoteAppIntent {
+    var config = configuration
+    if config.selectedNote == nil {
+      let modelContainer = try? ModelContainer(for: Account.self, Note.self)
+      if let modelContainer {
+        let actor = NoteModelActor(modelContainer: modelContainer)
+        let entities = try? await actor.fetchNotes()
+        if let firstNote = entities?.first(where: { !$0.id.contains("@") }) {
+          config.selectedNote = firstNote
+        }
+      }
     }
+    return config
   }
 }

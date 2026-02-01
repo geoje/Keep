@@ -1,5 +1,4 @@
 import AppIntents
-import SwiftData
 import WidgetKit
 
 struct NoteEntity: AppEntity {
