@@ -1,6 +1,16 @@
 import AppIntents
 import WidgetKit
 
+extension String {
+  func truncated(to length: Int) -> String {
+    if self.count <= length {
+      return self
+    } else {
+      return String(self.prefix(length - 3)) + "..."
+    }
+  }
+}
+
 struct NoteEntity: AppEntity {
   typealias ID = String
 
@@ -35,22 +45,32 @@ struct NoteEntity: AppEntity {
     if !uncheckedItems.isEmpty || !checkedItems.isEmpty {
       var parts: [String] = []
       if !uncheckedItems.isEmpty {
-        parts.append("□ \(uncheckedItems[0])")
+        parts.append("□ \(uncheckedItems[0].truncated(to: 30))")
         if uncheckedItems.count > 1 {
-          parts.append(
-            "+ \(uncheckedItems.count - 1) unchecked item\(uncheckedItems.count - 1 > 1 ? "s" : "")"
-          )
+          let extraUnchecked = uncheckedItems.count - 1
+          let itemWord = extraUnchecked == 1 ? "item" : "items"
+          parts.append("+ \(extraUnchecked) unchecked \(itemWord)")
         }
       }
       if !checkedItems.isEmpty {
-        parts.append("+ \(checkedItems.count) checked item\(checkedItems.count > 1 ? "s" : "")")
+        let itemWord = checkedItems.count == 1 ? "item" : "items"
+        parts.append("+ \(checkedItems.count) checked \(itemWord)")
       }
       subtitle = parts.joined(separator: "\n")
     } else {
-      subtitle = text
+      let lines = text.components(separatedBy: "\n")
+      if lines.count <= 2 {
+        subtitle = lines.map { $0.truncated(to: 30) }.joined(separator: "\n")
+      } else {
+        let firstTwo = lines.prefix(2).map { $0.truncated(to: 30) }.joined(separator: "\n")
+        let extraLines = lines.count - 2
+        let lineWord = extraLines == 1 ? "line" : "lines"
+        subtitle = firstTwo + "\n+ \(extraLines) \(lineWord)"
+      }
     }
     return DisplayRepresentation(
-      title: LocalizedStringResource(stringLiteral: title.isEmpty ? "Untitled" : title),
+      title: LocalizedStringResource(
+        stringLiteral: (title.isEmpty ? "Untitled" : title).truncated(to: 30)),
       subtitle: LocalizedStringResource(stringLiteral: subtitle),
       image: DisplayRepresentation.Image(systemName: "document"))
   }
