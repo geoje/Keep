@@ -33,10 +33,19 @@ struct NoteEntity: AppEntity {
 
     let subtitle: String
     if !uncheckedItems.isEmpty || !checkedItems.isEmpty {
-      subtitle = [
-        uncheckedItems.isEmpty ? nil : uncheckedItems.map { "□ \($0)" }.joined(separator: "\n"),
-        checkedItems.isEmpty ? nil : checkedItems.map { "☑ \($0)" }.joined(separator: "\n"),
-      ].compactMap { $0 }.joined(separator: "\n")
+      var parts: [String] = []
+      if !uncheckedItems.isEmpty {
+        parts.append("□ \(uncheckedItems[0])")
+        if uncheckedItems.count > 1 {
+          parts.append(
+            "+ \(uncheckedItems.count - 1) unchecked item\(uncheckedItems.count - 1 > 1 ? "s" : "")"
+          )
+        }
+      }
+      if !checkedItems.isEmpty {
+        parts.append("+ \(checkedItems.count) checked item\(checkedItems.count > 1 ? "s" : "")")
+      }
+      subtitle = parts.joined(separator: "\n")
     } else {
       subtitle = text
     }

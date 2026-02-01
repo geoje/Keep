@@ -42,6 +42,7 @@ struct NoteWidgetEntryView: View {
     } else {
       Text("No selected note")
         .font(.body)
+        .foregroundColor(.secondary)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
   }
