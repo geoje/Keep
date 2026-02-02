@@ -44,4 +44,14 @@ actor NoteModelActor: ModelActor {
 
     return entities
   }
+
+  func syncNotesForAccount(email: String) async throws {
+    let accountDescriptor = FetchDescriptor<Account>(
+      predicate: #Predicate { $0.email == email }
+    )
+    if let account = try modelContext.fetch(accountDescriptor).first {
+      let noteService = NoteService()
+      try await noteService.syncNotes(for: account, modelContext: modelContext)
+    }
+  }
 }
