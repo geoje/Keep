@@ -19,7 +19,7 @@ class ContentViewModel: ObservableObject {
     self.peopleService = GooglePeopleService()
   }
 
-  func selectAccount(_ account: Account, modelContext: ModelContext) {
+  func selectAccount(_ account: Account, modelContext: ModelContext, completion: @escaping () -> Void = {}) {
     if selectedAccount?.email == account.email {
       selectedAccount = nil
     } else {
@@ -45,6 +45,7 @@ class ContentViewModel: ObservableObject {
           errorMessages[account.email] = error.localizedDescription
         }
         loadingStates[account.email] = false
+        completion()
       }
     }
   }

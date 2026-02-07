@@ -51,6 +51,30 @@ struct ContentView: View {
           viewModel.selectAccount(account, modelContext: modelContext)
         }
       }
+      .onOpenURL { url in
+        if url.scheme == "https" {
+          NSWorkspace.shared.open(url)
+          if let fragment = url.fragment, let serverId = fragment.split(separator: "/").last {
+            let serverIdString = String(serverId)
+            Task {
+              do {
+                let note = try modelContext.fetch(
+                  FetchDescriptor<Note>(predicate: #Predicate { $0.serverId == serverIdString })
+                ).first
+                if let note = note, let account = accounts.first(where: { $0.email == note.email })
+                {
+                  viewModel.selectAccount(account, modelContext: modelContext) {
+                    NSApplication.shared.terminate(nil)
+                  }
+                }
+              } catch {
+                print("Failed to select account: \(error)")
+                NSApplication.shared.terminate(nil)
+              }
+            }
+          }
+        }
+      }
   }
 }
 
@@ -66,8 +90,10 @@ struct ContentView: View {
   )
 
   for account in [
-    Account(email: "boy@gmail.com", picture: "https://cdn-icons-png.flaticon.com/128/16683/16683419.png"),
-    Account(email: "girl@gmail.com", picture: "https://cdn-icons-png.flaticon.com/128/16683/16683451.png")
+    Account(
+      email: "boy@gmail.com", picture: "https://cdn-icons-png.flaticon.com/128/16683/16683419.png"),
+    Account(
+      email: "girl@gmail.com", picture: "https://cdn-icons-png.flaticon.com/128/16683/16683451.png"),
   ] {
     container.mainContext.insert(account)
   }

@@ -33,11 +33,11 @@ actor NoteModelActor: ModelActor {
             return NoteEntity(
               id: $0.id, email: $0.email, color: $0.color, title: $0.title,
               uncheckedItems: uncheckedItems,
-              checkedItems: checkedItems, type: $0.type, serverId: $0.serviceId)
+              checkedItems: checkedItems, type: $0.type, serverId: $0.serverId)
           } else {
             return NoteEntity(
               id: $0.id, email: $0.email, color: $0.color, title: $0.title,
-              text: uncheckedItems.joined(separator: "\n"), type: $0.type, serverId: $0.serviceId)
+              text: uncheckedItems.joined(separator: "\n"), type: $0.type, serverId: $0.serverId)
           }
         })
     }
