@@ -10,6 +10,9 @@ struct KeepApp: App {
           .onOpenURL { url in
             if url.scheme == "https" {
               NSWorkspace.shared.open(url)
+              DispatchQueue.main.asyncAfter(deadline: .now()) {
+                NSApplication.shared.terminate(self)
+              }
             }
           }
       }

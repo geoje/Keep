@@ -54,40 +54,42 @@ struct NoteWidgetEntryView: View {
   }
 
   private func noteContentView(for note: NoteEntity) -> some View {
-    VStack(alignment: .leading, spacing: 4) {
-      if !note.title.isEmpty {
-        Text(note.title)
-          .font(.headline)
-      }
-      if note.uncheckedItems.isEmpty && note.checkedItems.isEmpty {
-        Text(note.text)
-          .font(.body)
-      } else {
-        if !note.uncheckedItems.isEmpty {
-          VStack(alignment: .leading, spacing: 2) {
-            ForEach(note.uncheckedItems, id: \.self) { item in
-              HStack(spacing: 4) {
-                Image(systemName: "square")
-                  .font(.body)
-                  .foregroundColor(.secondary)
-                  .opacity(0.4)
-                Text(item)
-                  .font(.body)
+    GeometryReader { geo in
+      VStack(alignment: .leading, spacing: 4) {
+        if !note.title.isEmpty {
+          Text(note.title)
+            .font(.headline)
+        }
+        if note.uncheckedItems.isEmpty && note.checkedItems.isEmpty {
+          Text(note.text)
+            .font(.body)
+        } else {
+          if !note.uncheckedItems.isEmpty {
+            VStack(alignment: .leading, spacing: 2) {
+              ForEach(note.uncheckedItems, id: \.self) { item in
+                HStack(spacing: 4) {
+                  Image(systemName: "square")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .opacity(0.4)
+                  Text(item)
+                    .font(.body)
+                }
               }
             }
           }
-        }
-        if !note.checkedItems.isEmpty {
-          Text(
-            "+ \(note.checkedItems.count) checked item\(note.checkedItems.count > 1 ? "s" : "")"
-          )
-          .font(.body)
-          .foregroundColor(.secondary)
+          if !note.checkedItems.isEmpty {
+            Text(
+              "+ \(note.checkedItems.count) checked item\(note.checkedItems.count > 1 ? "s" : "")"
+            )
+            .font(.body)
+            .foregroundColor(.secondary)
+          }
         }
       }
+      .foregroundColor(.primary)
+      .frame(maxWidth: .infinity, maxHeight: geo.size.height, alignment: .topLeading)
     }
-    .foregroundColor(.primary)
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
   }
 
   var body: some View {
