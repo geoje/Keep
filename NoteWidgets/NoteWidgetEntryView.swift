@@ -66,7 +66,8 @@ struct NoteWidgetEntryView: View {
         } else {
           if !note.uncheckedItems.isEmpty {
             VStack(alignment: .leading, spacing: 2) {
-              ForEach(note.uncheckedItems, id: \.self) { item in
+              ForEach(note.uncheckedItems.indices, id: \.self) { index in
+                let item = note.uncheckedItems[index]
                 HStack(spacing: 4) {
                   Image(systemName: "square")
                     .font(.body)
