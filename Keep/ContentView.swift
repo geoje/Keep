@@ -68,7 +68,6 @@ struct ContentView: View {
                   }
                 }
               } catch {
-                print("Failed to select account: \(error)")
                 NSApplication.shared.terminate(nil)
               }
             }

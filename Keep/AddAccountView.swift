@@ -81,8 +81,6 @@ struct AddAccountView: View {
         }
       }
 
-      Spacer()
-
       HStack(spacing: 8) {
         Button("Cancel") {
           dismiss()
@@ -104,6 +102,12 @@ struct AddAccountView: View {
         .keyboardShortcut(.defaultAction)
         .disabled(isLoading || email.isEmpty || oauthToken.isEmpty)
       }
+
+      Divider()
+
+      Button("Sign in with Google") {
+      }
+      .buttonStyle(.borderedProminent)
     }
     .padding()
     .frame(width: 300)
