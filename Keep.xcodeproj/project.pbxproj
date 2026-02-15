@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		858C33E52F4129FA001F1CB9 /* chromedriver in Resources */ = {isa = PBXBuildFile; fileRef = 858C33E42F4129FA001F1CB9 /* chromedriver */; };
+		858C33E62F4129FA001F1CB9 /* chromedriver in Resources */ = {isa = PBXBuildFile; fileRef = 858C33E42F4129FA001F1CB9 /* chromedriver */; };
+		858C33E82F412A54001F1CB9 /* Google Chrome for Testing.app in Resources */ = {isa = PBXBuildFile; fileRef = 858C33E72F412A54001F1CB9 /* Google Chrome for Testing.app */; };
+		858C33E92F412A54001F1CB9 /* Google Chrome for Testing.app in Resources */ = {isa = PBXBuildFile; fileRef = 858C33E72F412A54001F1CB9 /* Google Chrome for Testing.app */; };
+		858C33EC2F413218001F1CB9 /* WebDriver in Frameworks */ = {isa = PBXBuildFile; productRef = 858C33EB2F413218001F1CB9 /* WebDriver */; };
+		858C33EE2F413265001F1CB9 /* WebDriver in Frameworks */ = {isa = PBXBuildFile; productRef = 858C33ED2F413265001F1CB9 /* WebDriver */; };
 		85C16FF42F2E60550030AABC /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 85C16FF32F2E60550030AABC /* WidgetKit.framework */; };
 		85C16FF62F2E60550030AABC /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 85C16FF52F2E60550030AABC /* SwiftUI.framework */; };
 		85C170032F2E60560030AABC /* NoteWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 85C16FF12F2E60550030AABC /* NoteWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -37,6 +43,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		858C33E42F4129FA001F1CB9 /* chromedriver */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = chromedriver; sourceTree = "<group>"; };
+		858C33E72F412A54001F1CB9 /* Google Chrome for Testing.app */ = {isa = PBXFileReference; lastKnownFileType = wrapper.application; path = "Google Chrome for Testing.app"; sourceTree = "<group>"; };
 		859B902F2F255006009BCA5A /* Keep.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Keep.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		85C16FF12F2E60550030AABC /* NoteWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NoteWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		85C16FF32F2E60550030AABC /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -119,6 +127,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				858C33EC2F413218001F1CB9 /* WebDriver in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -126,6 +135,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				858C33EE2F413265001F1CB9 /* WebDriver in Frameworks */,
 				85C16FF62F2E60550030AABC /* SwiftUI.framework in Frameworks */,
 				85C16FF42F2E60550030AABC /* WidgetKit.framework in Frameworks */,
 			);
@@ -134,9 +144,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		858C33E32F4129AA001F1CB9 /* Binaries */ = {
+			isa = PBXGroup;
+			children = (
+				858C33E42F4129FA001F1CB9 /* chromedriver */,
+				858C33E72F412A54001F1CB9 /* Google Chrome for Testing.app */,
+			);
+			path = Binaries;
+			sourceTree = "<group>";
+		};
 		859B90262F255006009BCA5A = {
 			isa = PBXGroup;
 			children = (
+				858C33E32F4129AA001F1CB9 /* Binaries */,
 				85B320002F2BF68200CC523E /* Model */,
 				85B31FF82F2BF67500CC523E /* Service */,
 				859B90312F255006009BCA5A /* Keep */,
@@ -188,6 +208,7 @@
 			);
 			name = Keep;
 			packageProductDependencies = (
+				858C33EB2F413218001F1CB9 /* WebDriver */,
 			);
 			productName = Keep;
 			productReference = 859B902F2F255006009BCA5A /* Keep.app */;
@@ -210,6 +231,7 @@
 			);
 			name = NoteWidgetsExtension;
 			packageProductDependencies = (
+				858C33ED2F413265001F1CB9 /* WebDriver */,
 			);
 			productName = NoteWidgetsExtension;
 			productReference = 85C16FF12F2E60550030AABC /* NoteWidgetsExtension.appex */;
@@ -242,6 +264,9 @@
 			);
 			mainGroup = 859B90262F255006009BCA5A;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				858C33EA2F413218001F1CB9 /* XCRemoteSwiftPackageReference "swift-webdriver" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 859B90302F255006009BCA5A /* Products */;
 			projectDirPath = "";
@@ -258,6 +283,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				858C33E62F4129FA001F1CB9 /* chromedriver in Resources */,
+				858C33E92F412A54001F1CB9 /* Google Chrome for Testing.app in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -265,6 +292,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				858C33E82F412A54001F1CB9 /* Google Chrome for Testing.app in Resources */,
+				858C33E52F4129FA001F1CB9 /* chromedriver in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -431,7 +460,7 @@
 				DEVELOPMENT_TEAM = YV459B6BC7;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
@@ -485,7 +514,7 @@
 				DEVELOPMENT_TEAM = YV459B6BC7;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
@@ -537,7 +566,7 @@
 				DEVELOPMENT_TEAM = YV459B6BC7;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
 				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
@@ -583,7 +612,7 @@
 				DEVELOPMENT_TEAM = YV459B6BC7;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
 				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
@@ -647,6 +676,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		858C33EA2F413218001F1CB9 /* XCRemoteSwiftPackageReference "swift-webdriver" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/thebrowsercompany/swift-webdriver";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		858C33EB2F413218001F1CB9 /* WebDriver */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 858C33EA2F413218001F1CB9 /* XCRemoteSwiftPackageReference "swift-webdriver" */;
+			productName = WebDriver;
+		};
+		858C33ED2F413265001F1CB9 /* WebDriver */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 858C33EA2F413218001F1CB9 /* XCRemoteSwiftPackageReference "swift-webdriver" */;
+			productName = WebDriver;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 859B90272F255006009BCA5A /* Project object */;
 }
