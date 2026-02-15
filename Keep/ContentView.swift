@@ -9,6 +9,8 @@ struct ContentView: View {
   @State private var showingAddAccountOptions = false
   @StateObject private var viewModel = ContentViewModel()
   @StateObject private var chromeDriverService = ChromeDriverService()
+  @State private var playServiceLoginService: ChromePlayLoginService?
+  @State private var directLoginService: ChromeDirectLoginService?
 
   var body: some View {
     let content: some View =
@@ -50,14 +52,20 @@ struct ContentView: View {
       .alert("Add Account", isPresented: $showingAddAccountOptions) {
         Button("Google Play Service (Recommended)") {
           Task {
-            try? await chromeDriverService.launchChrome(
-              url: "https://accounts.google.com/EmbeddedSetup")
+            if playServiceLoginService == nil {
+              playServiceLoginService = ChromePlayLoginService(
+                chromeDriverService: chromeDriverService)
+            }
+            await playServiceLoginService?.startLogin()
           }
         }
         Button("Direct Google Login") {
           Task {
-            try? await chromeDriverService.launchChrome(
-              url: "https://accounts.google.com/ServiceLogin?continue=https://myaccount.google.com")
+            if directLoginService == nil {
+              directLoginService = ChromeDirectLoginService(
+                chromeDriverService: chromeDriverService)
+            }
+            await directLoginService?.startLogin()
           }
         }
         Button("Cancel", role: .cancel) {}

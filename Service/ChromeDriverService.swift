@@ -7,6 +7,7 @@ class ChromeDriverService: ObservableObject {
 
   private var chromedriverProcess: Process?
   private var chromeSessionId: String?
+  private var sessionMonitorTask: Task<Void, Never>?
 
   private let driverPort = 9515
 
@@ -54,6 +55,7 @@ class ChromeDriverService: ObservableObject {
     if chromeSessionId == nil {
       let sessionId = try await createChromeSession(chromePath: chromePath)
       chromeSessionId = sessionId
+      startSessionMonitoring()
     }
 
     // Navigate to URL using existing or newly created session
@@ -63,9 +65,14 @@ class ChromeDriverService: ObservableObject {
   }
 
   func cleanup() {
+    stopSessionMonitoring()
     closeChromeSession()
     stopChromeDriver()
     isRunning = false
+  }
+
+  func getSessionId() -> String? {
+    return chromeSessionId
   }
 
   private func createChromeSession(chromePath: String) async throws -> String {
@@ -114,6 +121,78 @@ class ChromeDriverService: ObservableObject {
     let body: [String: Any] = ["url": url]
     request.httpBody = try JSONSerialization.data(withJSONObject: body)
     _ = try await URLSession.shared.data(for: request)
+  }
+
+  private func startSessionMonitoring() {
+    stopSessionMonitoring()
+
+    sessionMonitorTask = Task { [weak self] in
+      guard let self = self else { return }
+
+      while !Task.isCancelled {
+        try? await Task.sleep(for: .seconds(1))
+
+        guard let sessionId = self.chromeSessionId else {
+          print("Session ID lost - cleaning up")
+          self.cleanup()
+          return
+        }
+
+        let isValid = await self.checkSessionValidity(sessionId: sessionId)
+        if !isValid {
+          print("Session invalid (window closed or Chrome crashed) - cleaning up")
+          self.cleanup()
+          return
+        }
+      }
+    }
+  }
+
+  private func stopSessionMonitoring() {
+    sessionMonitorTask?.cancel()
+    sessionMonitorTask = nil
+  }
+
+  private func checkSessionValidity(sessionId: String) async -> Bool {
+    let url = URL(string: "http://localhost:\(driverPort)/sessions")!
+    var request = URLRequest(url: url)
+    request.httpMethod = "GET"
+
+    do {
+      let (data, response) = try await URLSession.shared.data(for: request)
+      print("Sessions check response: \(response)")
+
+      guard let httpResponse = response as? HTTPURLResponse else {
+        print("Failed to cast to HTTPURLResponse")
+        return false
+      }
+
+      print("Sessions check status code: \(httpResponse.statusCode)")
+
+      if httpResponse.statusCode == 200 {
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let value = json["value"] as? [[String: Any]]
+        {
+          print("Active sessions: \(value)")
+
+          // Check if our session ID is in the active sessions list
+          let hasSession = value.contains { session in
+            if let id = session["id"] as? String {
+              return id == sessionId
+            }
+            return false
+          }
+
+          print("Our session (\(sessionId)) is active: \(hasSession)")
+          return hasSession
+        }
+      }
+
+      return false
+    } catch {
+      print("Sessions check error: \(error)")
+      return false
+    }
   }
 
   private func closeChromeSession() {
