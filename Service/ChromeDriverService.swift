@@ -35,8 +35,17 @@ class ChromeDriverService: ObservableObject {
       try process.run()
       chromedriverProcess = process
 
-      // Wait for ChromeDriver to be ready
-      try await Task.sleep(for: .seconds(1))
+      // Wait for ChromeDriver to be ready by polling status endpoint
+      for _ in 0..<50 {  // Maximum 5 seconds (50 * 100ms)
+        let statusURL = URL(string: "http://localhost:\(driverPort)/status")!
+        if let (_, response) = try? await URLSession.shared.data(from: statusURL),
+          let httpResponse = response as? HTTPURLResponse,
+          httpResponse.statusCode == 200
+        {
+          break  // ChromeDriver is ready
+        }
+        try await Task.sleep(for: .milliseconds(100))
+      }
     }
 
     isRunning = true
@@ -74,6 +83,8 @@ class ChromeDriverService: ObservableObject {
               "--disable-blink-features=AutomationControlled",
               "--no-first-run",
               "--no-default-browser-check",
+              "--disable-infobars",
+              "--test-type",
             ],
             "excludeSwitches": ["enable-automation"],
           ]
@@ -107,12 +118,16 @@ class ChromeDriverService: ObservableObject {
 
   private func closeChromeSession() {
     if let sessionId = chromeSessionId {
-      Task {
-        let url = URL(string: "http://localhost:\(driverPort)/session/\(sessionId)")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "DELETE"
-        _ = try? await URLSession.shared.data(for: request)
-      }
+      let url = URL(string: "http://localhost:\(driverPort)/session/\(sessionId)")!
+      var request = URLRequest(url: url)
+      request.httpMethod = "DELETE"
+      request.timeoutInterval = 2.0
+
+      let semaphore = DispatchSemaphore(value: 0)
+      URLSession.shared.dataTask(with: request) { _, _, _ in
+        semaphore.signal()
+      }.resume()
+      _ = semaphore.wait(timeout: .now() + 2.0)
     }
     chromeSessionId = nil
   }

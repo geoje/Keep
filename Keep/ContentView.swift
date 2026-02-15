@@ -66,9 +66,6 @@ struct ContentView: View {
           "Try Google Play Service first. Use Direct Login if you have an Enterprise account or encounter issues."
         )
       }
-      .onDisappear {
-        chromeDriverService.cleanup()
-      }
       .onOpenURL { url in
         if url.scheme == "https" {
           NSWorkspace.shared.open(url)
