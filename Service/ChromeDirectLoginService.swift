@@ -50,7 +50,7 @@ class ChromeDirectLoginService: ObservableObject {
 
           // Cleanup and stop monitoring
           self.stopMonitoring()
-          self.chromeDriverService.cleanup()
+          await self.chromeDriverService.cleanup()
           return
         }
       }
