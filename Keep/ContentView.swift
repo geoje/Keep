@@ -6,8 +6,9 @@ struct ContentView: View {
   @Environment(\.modelContext) private var modelContext
   @Query(sort: \Account.email, order: .forward) private var accounts: [Account]
 
-  @State private var showingAddAccount = false
+  @State private var showingAddAccountOptions = false
   @StateObject private var viewModel = ContentViewModel()
+  @StateObject private var chromeDriverService = ChromeDriverService()
 
   var body: some View {
     let content: some View =
@@ -40,16 +41,33 @@ struct ContentView: View {
         }
         ToolbarItem(placement: .automatic) {
           Button(action: {
-            showingAddAccount = true
+            showingAddAccountOptions = true
           }) {
             Label("Add", systemImage: "plus")
           }
         }
       }
-      .sheet(isPresented: $showingAddAccount) {
-        AddAccountView { account in
-          viewModel.selectAccount(account, modelContext: modelContext)
+      .alert("Add Account", isPresented: $showingAddAccountOptions) {
+        Button("Google Play Service (Recommended)") {
+          Task {
+            try? await chromeDriverService.launchChrome(
+              url: "https://accounts.google.com/EmbeddedSetup")
+          }
         }
+        Button("Direct Google Login") {
+          Task {
+            try? await chromeDriverService.launchChrome(
+              url: "https://accounts.google.com/ServiceLogin?continue=https://myaccount.google.com")
+          }
+        }
+        Button("Cancel", role: .cancel) {}
+      } message: {
+        Text(
+          "Try Google Play Service first. Use Direct Login if you have an Enterprise account or encounter issues."
+        )
+      }
+      .onDisappear {
+        chromeDriverService.cleanup()
       }
       .onOpenURL { url in
         if url.scheme == "https" {
