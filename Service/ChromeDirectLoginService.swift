@@ -32,9 +32,18 @@ class ChromeDirectLoginService: ObservableObject {
       while !Task.isCancelled {
         try? await Task.sleep(for: .seconds(1))
 
-        if let sessionId = self.chromeDriverService.getSessionId(),
-          let currentURL = await self.getCurrentURL(sessionId: sessionId),
-          let url = URL(string: currentURL),
+        guard let sessionId = self.chromeDriverService.getSessionId() else {
+          self.stopMonitoring()
+          return
+        }
+
+        guard let currentURL = await self.getCurrentURL(sessionId: sessionId) else {
+          self.stopMonitoring()
+          await self.chromeDriverService.cleanup()
+          return
+        }
+
+        if let url = URL(string: currentURL),
           url.host == "myaccount.google.com"
         {
 

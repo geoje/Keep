@@ -37,19 +37,26 @@ class ChromePlayLoginService: ObservableObject {
           return
         }
 
-        if let cookies = await self.getCookies(sessionId: sessionId) {
-          for cookie in cookies {
-            if let name = cookie["name"] as? String,
-              name == "oauth_token",
-              let oauthToken = cookie["value"] as? String
-            {
-              if let email = await self.extractEmail(sessionId: sessionId) {
-                self.stopMonitoring()
-                await self.chromeDriverService.cleanup()
-                self.onLoginSuccess?(email, oauthToken)
-              }
+        guard let cookies = await self.getCookies(sessionId: sessionId) else {
+          self.stopMonitoring()
+          await self.chromeDriverService.cleanup()
+          return
+        }
+
+        for cookie in cookies {
+          if let name = cookie["name"] as? String,
+            name == "oauth_token",
+            let oauthToken = cookie["value"] as? String
+          {
+            guard let email = await self.extractEmail(sessionId: sessionId) else {
+              self.stopMonitoring()
+              await self.chromeDriverService.cleanup()
               return
             }
+            self.stopMonitoring()
+            await self.chromeDriverService.cleanup()
+            self.onLoginSuccess?(email, oauthToken)
+            return
           }
         }
       }
