@@ -5,18 +5,18 @@ import Foundation
 class ChromePlayLoginService: ObservableObject {
   private let chromeDriverService: ChromeDriverService
   private var monitorTask: Task<Void, Never>?
+  var onLoginSuccess: ((String, String) -> Void)?
 
   init(chromeDriverService: ChromeDriverService) {
     self.chromeDriverService = chromeDriverService
   }
 
-  func startLogin() async {
-    do {
-      try await chromeDriverService.launchChrome(url: "https://accounts.google.com/EmbeddedSetup")
-      startMonitoring()
-    } catch {
-      print("Failed to launch Chrome: \(error)")
+  func startLogin() async throws {
+    try await chromeDriverService.launchChrome(url: "https://accounts.google.com/EmbeddedSetup")
+    chromeDriverService.registerCleanupCallback { [weak self] in
+      self?.stopMonitoring()
     }
+    startMonitoring()
   }
 
   func stopMonitoring() {
@@ -41,12 +41,13 @@ class ChromePlayLoginService: ObservableObject {
           for cookie in cookies {
             if let name = cookie["name"] as? String,
               name == "oauth_token",
-              let value = cookie["value"] as? String
+              let oauthToken = cookie["value"] as? String
             {
-              print("OAuth Token found: \(value)")
-
-              self.stopMonitoring()
-              await self.chromeDriverService.cleanup()
+              if let email = await self.extractEmail(sessionId: sessionId) {
+                self.stopMonitoring()
+                await self.chromeDriverService.cleanup()
+                self.onLoginSuccess?(email, oauthToken)
+              }
               return
             }
           }
@@ -68,6 +69,44 @@ class ChromePlayLoginService: ObservableObject {
 
       if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
         let value = json["value"] as? [[String: Any]]
+      {
+        return value
+      }
+    } catch {
+      return nil
+    }
+    return nil
+  }
+
+  private func extractEmail(sessionId: String) async -> String? {
+    let script = """
+      const emailElement = document.querySelector('[data-email]');
+      return emailElement ? emailElement.getAttribute('data-email') : null;
+      """
+    return await executeScript(sessionId: sessionId, script: script)
+  }
+
+  private func executeScript(sessionId: String, script: String) async -> String? {
+    let url = URL(string: "http://localhost:9515/session/\(sessionId)/execute/sync")!
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+    let body: [String: Any] = [
+      "script": script,
+      "args": [],
+    ]
+    request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+    do {
+      let (data, response) = try await URLSession.shared.data(for: request)
+      guard let httpResponse = response as? HTTPURLResponse,
+        httpResponse.statusCode == 200
+      else { return nil }
+
+      if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+        let value = json["value"] as? String,
+        !value.isEmpty
       {
         return value
       }

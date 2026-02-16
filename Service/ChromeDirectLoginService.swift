@@ -10,14 +10,13 @@ class ChromeDirectLoginService: ObservableObject {
     self.chromeDriverService = chromeDriverService
   }
 
-  func startLogin() async {
-    do {
-      try await chromeDriverService.launchChrome(
-        url: "https://accounts.google.com/ServiceLogin?continue=https://myaccount.google.com")
-      startMonitoring()
-    } catch {
-      print("Failed to launch Chrome: \(error)")
+  func startLogin() async throws {
+    try await chromeDriverService.launchChrome(
+      url: "https://accounts.google.com/ServiceLogin?continue=https://myaccount.google.com")
+    chromeDriverService.registerCleanupCallback { [weak self] in
+      self?.stopMonitoring()
     }
+    startMonitoring()
   }
 
   func stopMonitoring() {

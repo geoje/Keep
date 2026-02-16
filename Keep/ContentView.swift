@@ -7,6 +7,8 @@ struct ContentView: View {
   @Query(sort: \Account.email, order: .forward) private var accounts: [Account]
 
   @State private var showingAddAccountOptions = false
+  @State private var showingErrorAlert = false
+  @State private var errorMessage = ""
   @StateObject private var viewModel = ContentViewModel()
   @StateObject private var chromeDriverService = ChromeDriverService()
   @State private var playServiceLoginService: ChromePlayLoginService?
@@ -22,7 +24,7 @@ struct ContentView: View {
     return
       content
       .frame(minWidth: 360, maxWidth: 360, minHeight: 240)
-      .alert("Delete Account", isPresented: $viewModel.showDeleteConfirm) {
+      .alert("🗑️ Delete Account", isPresented: $viewModel.showDeleteConfirm) {
         Button("Cancel", role: .cancel) {}
         Button("Delete", role: .destructive) {
           viewModel.deleteSelectedAccount(modelContext: modelContext)
@@ -49,23 +51,38 @@ struct ContentView: View {
           }
         }
       }
-      .alert("Add Account", isPresented: $showingAddAccountOptions) {
+      .alert("➕ Add Account", isPresented: $showingAddAccountOptions) {
         Button("Google Play Service (Recommended)") {
           Task {
-            if playServiceLoginService == nil {
-              playServiceLoginService = ChromePlayLoginService(
-                chromeDriverService: chromeDriverService)
+            do {
+              if playServiceLoginService == nil {
+                playServiceLoginService = ChromePlayLoginService(
+                  chromeDriverService: chromeDriverService)
+                playServiceLoginService?.onLoginSuccess = { email, oauthToken in
+                  Task {
+                    await handlePlayLoginSuccess(email: email, oauthToken: oauthToken)
+                  }
+                }
+              }
+              try await playServiceLoginService?.startLogin()
+            } catch {
+              errorMessage = error.localizedDescription
+              showingErrorAlert = true
             }
-            await playServiceLoginService?.startLogin()
           }
         }
         Button("Direct Google Login") {
           Task {
-            if directLoginService == nil {
-              directLoginService = ChromeDirectLoginService(
-                chromeDriverService: chromeDriverService)
+            do {
+              if directLoginService == nil {
+                directLoginService = ChromeDirectLoginService(
+                  chromeDriverService: chromeDriverService)
+              }
+              try await directLoginService?.startLogin()
+            } catch {
+              errorMessage = error.localizedDescription
+              showingErrorAlert = true
             }
-            await directLoginService?.startLogin()
           }
         }
         Button("Cancel", role: .cancel) {}
@@ -73,6 +90,11 @@ struct ContentView: View {
         Text(
           "Try Google Play Service first. Use Direct Login if you have an Enterprise account or encounter issues."
         )
+      }
+      .alert("⚠️ Error", isPresented: $showingErrorAlert) {
+        Button("OK", role: .cancel) {}
+      } message: {
+        Text(errorMessage)
       }
       .onOpenURL { url in
         if url.scheme == "https" {
@@ -97,6 +119,23 @@ struct ContentView: View {
           }
         }
       }
+  }
+
+  private func handlePlayLoginSuccess(email: String, oauthToken: String) async {
+    do {
+      let authService = GoogleAuthService()
+      let masterToken = try await authService.fetchMasterToken(
+        email: email, oauthToken: oauthToken)
+
+      let newAccount = Account(email: email, masterToken: masterToken)
+      modelContext.insert(newAccount)
+      try modelContext.save()
+
+      viewModel.selectAccount(newAccount, modelContext: modelContext)
+    } catch {
+      errorMessage = error.localizedDescription
+      showingErrorAlert = true
+    }
   }
 }
 

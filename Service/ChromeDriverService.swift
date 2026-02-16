@@ -7,6 +7,7 @@ class ChromeDriverService: ObservableObject {
 
   private var chromedriverProcess: Process?
   private var chromeSessionId: String?
+  private var cleanupCallbacks: [() -> Void] = []
 
   private let driverPort = 9515
 
@@ -27,29 +28,26 @@ class ChromeDriverService: ObservableObject {
     }
 
     if chromedriverProcess == nil || chromedriverProcess?.isRunning != true {
-      let process = Process()
-      process.executableURL = URL(fileURLWithPath: chromedriverPath)
-      process.arguments = ["--port=\(driverPort)"]
+      if !(await checkPortInUse()) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: chromedriverPath)
+        process.arguments = ["--port=\(driverPort)"]
 
-      try process.run()
-      chromedriverProcess = process
+        try process.run()
+        chromedriverProcess = process
 
-      for _ in 0..<50 {
-        let statusURL = URL(string: "http://localhost:\(driverPort)/status")!
-        if let (_, response) = try? await URLSession.shared.data(from: statusURL),
-          let httpResponse = response as? HTTPURLResponse,
-          httpResponse.statusCode == 200
-        {
-          break
+        for _ in 0..<50 {
+          if await checkPortInUse() {
+            break
+          }
+          try await Task.sleep(for: .milliseconds(100))
         }
-        try await Task.sleep(for: .milliseconds(100))
       }
     }
 
     isRunning = true
 
     await deleteAllSessions()
-    chromeSessionId = nil
 
     let sessionId = try await createChromeSession(chromePath: chromePath)
     chromeSessionId = sessionId
@@ -57,14 +55,12 @@ class ChromeDriverService: ObservableObject {
     try await navigateToURL(sessionId: sessionId, url: url)
   }
 
-  func cleanup() async {
-    await closeChromeSession()
-    stopChromeDriver()
-    isRunning = false
-  }
-
   func getSessionId() -> String? {
     return chromeSessionId
+  }
+
+  func registerCleanupCallback(_ callback: @escaping () -> Void) {
+    cleanupCallbacks.append(callback)
   }
 
   private func createChromeSession(chromePath: String) async throws -> String {
@@ -131,17 +127,10 @@ class ChromeDriverService: ObservableObject {
   }
 
   private func deleteAllSessions() async {
+    cleanupCallbacks.forEach { $0() }
+
     let sessions = await getAllSessions()
     for sessionId in sessions {
-      let url = URL(string: "http://localhost:\(driverPort)/session/\(sessionId)")!
-      var request = URLRequest(url: url)
-      request.httpMethod = "DELETE"
-      _ = try? await URLSession.shared.data(for: request)
-    }
-  }
-
-  private func closeChromeSession() async {
-    if let sessionId = chromeSessionId {
       let url = URL(string: "http://localhost:\(driverPort)/session/\(sessionId)")!
       var request = URLRequest(url: url)
       request.httpMethod = "DELETE"
@@ -150,9 +139,47 @@ class ChromeDriverService: ObservableObject {
     chromeSessionId = nil
   }
 
+  private func checkPortInUse() async -> Bool {
+    let statusURL = URL(string: "http://localhost:\(driverPort)/status")!
+    if let (_, response) = try? await URLSession.shared.data(from: statusURL),
+      let httpResponse = response as? HTTPURLResponse,
+      httpResponse.statusCode == 200
+    {
+      return true
+    }
+    return false
+  }
+
+  func cleanup() async {
+    await deleteAllSessions()
+    stopChromeDriver()
+    killAllChromeProcesses()
+    isRunning = false
+  }
+
   private func stopChromeDriver() {
-    chromedriverProcess?.terminate()
-    chromedriverProcess = nil
+    if let process = chromedriverProcess, process.isRunning {
+      process.terminate()
+      chromedriverProcess = nil
+    } else {
+      killAllChromedrivers()
+    }
+  }
+
+  private func killAllChromedrivers() {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
+    process.arguments = ["-9", "chromedriver"]
+    try? process.run()
+    process.waitUntilExit()
+  }
+
+  private func killAllChromeProcesses() {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
+    process.arguments = ["-9", "Google Chrome for Testing"]
+    try? process.run()
+    process.waitUntilExit()
   }
 }
 
