@@ -47,8 +47,8 @@ class ChromeDirectLoginService: ObservableObject {
           url.host == "myaccount.google.com"
         {
 
-          if let imageURL = await self.extractImageURL(sessionId: sessionId) {
-            print("Image URL: \(imageURL)")
+          if let picture = await self.extractPicture(sessionId: sessionId) {
+            print("Picture: \(picture)")
           }
 
           if let email = await self.extractEmail(sessionId: sessionId) {
@@ -85,18 +85,18 @@ class ChromeDirectLoginService: ObservableObject {
     return nil
   }
 
-  private func extractImageURL(sessionId: String) async -> String? {
+  private func extractPicture(sessionId: String) async -> String? {
     let script = """
-      const imageElement = document.querySelector('image');
-      return imageElement ? imageElement.getAttributeNS('http://www.w3.org/1999/xlink', 'href') : null;
+      const imgElement = document.querySelector('button[aria-label="change profile picture"] img');
+      return imgElement ? imgElement.src : null;
       """
     return await executeScript(sessionId: sessionId, script: script)
   }
 
   private func extractEmail(sessionId: String) async -> String? {
     let script = """
-      const emailElement = document.querySelector('.fwyMNe');
-      return emailElement ? emailElement.textContent : null;
+      const metaElement = document.querySelector('meta[name="og-profile-acct"]');
+      return metaElement ? metaElement.getAttribute('content') : null;
       """
     return await executeScript(sessionId: sessionId, script: script)
   }
