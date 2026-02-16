@@ -32,10 +32,12 @@ class ChromePlayLoginService: ObservableObject {
       while !Task.isCancelled {
         try? await Task.sleep(for: .seconds(1))
 
-        if let sessionId = self.chromeDriverService.getSessionId(),
-          let cookies = await self.getCookies(sessionId: sessionId)
-        {
+        guard let sessionId = self.chromeDriverService.getSessionId() else {
+          self.stopMonitoring()
+          return
+        }
 
+        if let cookies = await self.getCookies(sessionId: sessionId) {
           for cookie in cookies {
             if let name = cookie["name"] as? String,
               name == "oauth_token",
@@ -43,7 +45,6 @@ class ChromePlayLoginService: ObservableObject {
             {
               print("OAuth Token found: \(value)")
 
-              // Cleanup and stop monitoring
               self.stopMonitoring()
               await self.chromeDriverService.cleanup()
               return

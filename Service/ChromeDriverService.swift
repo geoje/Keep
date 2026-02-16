@@ -26,7 +26,6 @@ class ChromeDriverService: ObservableObject {
       throw ChromeDriverError.chromeNotFound
     }
 
-    // Start ChromeDriver process if not already running
     if chromedriverProcess == nil || chromedriverProcess?.isRunning != true {
       let process = Process()
       process.executableURL = URL(fileURLWithPath: chromedriverPath)
@@ -35,14 +34,13 @@ class ChromeDriverService: ObservableObject {
       try process.run()
       chromedriverProcess = process
 
-      // Wait for ChromeDriver to be ready by polling status endpoint
-      for _ in 0..<50 {  // Maximum 5 seconds (50 * 100ms)
+      for _ in 0..<50 {
         let statusURL = URL(string: "http://localhost:\(driverPort)/status")!
         if let (_, response) = try? await URLSession.shared.data(from: statusURL),
           let httpResponse = response as? HTTPURLResponse,
           httpResponse.statusCode == 200
         {
-          break  // ChromeDriver is ready
+          break
         }
         try await Task.sleep(for: .milliseconds(100))
       }
@@ -50,16 +48,13 @@ class ChromeDriverService: ObservableObject {
 
     isRunning = true
 
-    // Create Chrome session if not already exists
-    if chromeSessionId == nil {
-      let sessionId = try await createChromeSession(chromePath: chromePath)
-      chromeSessionId = sessionId
-    }
+    await deleteAllSessions()
+    chromeSessionId = nil
 
-    // Navigate to URL using existing or newly created session
-    if let sessionId = chromeSessionId {
-      try await navigateToURL(sessionId: sessionId, url: url)
-    }
+    let sessionId = try await createChromeSession(chromePath: chromePath)
+    chromeSessionId = sessionId
+
+    try await navigateToURL(sessionId: sessionId, url: url)
   }
 
   func cleanup() async {
@@ -118,6 +113,31 @@ class ChromeDriverService: ObservableObject {
     let body: [String: Any] = ["url": url]
     request.httpBody = try JSONSerialization.data(withJSONObject: body)
     _ = try await URLSession.shared.data(for: request)
+  }
+
+  private func getAllSessions() async -> [String] {
+    let url = URL(string: "http://localhost:\(driverPort)/sessions")!
+    var request = URLRequest(url: url)
+    request.httpMethod = "GET"
+
+    guard let (data, _) = try? await URLSession.shared.data(for: request),
+      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+      let value = json["value"] as? [[String: Any]]
+    else {
+      return []
+    }
+
+    return value.compactMap { $0["id"] as? String }
+  }
+
+  private func deleteAllSessions() async {
+    let sessions = await getAllSessions()
+    for sessionId in sessions {
+      let url = URL(string: "http://localhost:\(driverPort)/session/\(sessionId)")!
+      var request = URLRequest(url: url)
+      request.httpMethod = "DELETE"
+      _ = try? await URLSession.shared.data(for: request)
+    }
   }
 
   private func closeChromeSession() async {

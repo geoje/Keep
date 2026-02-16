@@ -35,20 +35,18 @@ class ChromeDirectLoginService: ObservableObject {
 
         if let sessionId = self.chromeDriverService.getSessionId(),
           let currentURL = await self.getCurrentURL(sessionId: sessionId),
-          currentURL.contains("myaccount.google.com")
+          let url = URL(string: currentURL),
+          url.host == "myaccount.google.com"
         {
 
-          // Extract image URL
           if let imageURL = await self.extractImageURL(sessionId: sessionId) {
             print("Image URL: \(imageURL)")
           }
 
-          // Extract email
           if let email = await self.extractEmail(sessionId: sessionId) {
             print("Email: \(email)")
           }
 
-          // Cleanup and stop monitoring
           self.stopMonitoring()
           await self.chromeDriverService.cleanup()
           return

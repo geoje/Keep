@@ -20,13 +20,11 @@ struct NoteProvider: AppIntentTimelineProvider {
   func timeline(for configuration: NoteAppIntent, in context: Context) async -> Timeline<
     NoteEntry
   > {
-    // Sync notes for the specific account if a note is selected
     if let selectedNote = configuration.selectedNote, !selectedNote.email.isEmpty {
       let actor = NoteModelActor(modelContainer: ModelContainer.shared)
       try? await actor.syncNotesForAccount(email: selectedNote.email)
     }
 
-    // Fetch the updated note
     let note: NoteEntity?
     if let selectedNote = configuration.selectedNote {
       let provider = NoteEntitiesProvider()
