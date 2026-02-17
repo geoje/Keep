@@ -19,7 +19,9 @@ struct ContentView: View {
       if accounts.isEmpty {
         AnyView(EmptyAccountsView())
       } else {
-        AnyView(AccountListView(accounts: accounts, viewModel: viewModel))
+        AnyView(
+          AccountListView(
+            playServiceAccounts: accounts, chromeProfileAccounts: [], viewModel: viewModel))
       }
     return
       content
@@ -52,7 +54,7 @@ struct ContentView: View {
         }
       }
       .alert("➕ Add Account", isPresented: $showingAddAccountOptions) {
-        Button("Google Play Service (Recommended)") {
+        Button("Login Play Service") {
           Task {
             do {
               if playServiceLoginService == nil {
@@ -71,7 +73,7 @@ struct ContentView: View {
             }
           }
         }
-        Button("Direct Google Login") {
+        Button("Add Chrome Profile") {
           Task {
             do {
               if directLoginService == nil {
@@ -88,7 +90,7 @@ struct ContentView: View {
         Button("Cancel", role: .cancel) {}
       } message: {
         Text(
-          "Try Google Play Service first. Use Direct Login if you have an Enterprise account or encounter issues."
+          "Try Login Play Service first. Use Add Chrome Profile if you have an Enterprise account or encounter issues."
         )
       }
       .alert("⚠️ Error", isPresented: $showingErrorAlert) {
@@ -150,15 +152,22 @@ struct ContentView: View {
     configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]
   )
 
-  for account in [
-    Account(
-      email: "boy@gmail.com", picture: "https://cdn-icons-png.flaticon.com/128/16683/16683419.png"),
-    Account(
-      email: "girl@gmail.com", picture: "https://cdn-icons-png.flaticon.com/128/16683/16683451.png"),
-  ] {
-    container.mainContext.insert(account)
-  }
+  let viewModel = ContentViewModel()
 
-  return ContentView()
-    .modelContainer(container)
+  return AccountListView(
+    playServiceAccounts: [
+      Account(
+        email: "boy@gmail.com",
+        picture: "https://cdn-icons-png.flaticon.com/128/16683/16683419.png"
+      )
+    ],
+    chromeProfileAccounts: [
+      Account(
+        email: "girl@gmail.com",
+        picture: "https://cdn-icons-png.flaticon.com/128/16683/16683451.png"
+      )
+    ],
+    viewModel: viewModel
+  )
+  .modelContainer(container)
 }

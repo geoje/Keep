@@ -113,27 +113,13 @@ struct AccountRowView: View {
       )
     } else {
       return AnyView(
-        HStack(spacing: 16) {
-          HStack(spacing: 4) {
-            Image(systemName: "document")
-              .font(.system(size: 12))
-              .foregroundStyle(.secondary)
-            Text("\(noteService.getRootNotes(notes: notes, email: account.email).count)")
-              .font(.caption)
-              .foregroundStyle(.secondary)
-          }
-
-          if !account.masterToken.isEmpty {
-            HStack(spacing: 4) {
-              Image(systemName: "key")
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-              Text(formatMasterToken(account.masterToken))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .monospaced()
-            }
-          }
+        HStack(spacing: 4) {
+          Image(systemName: "document")
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+          Text("\(noteService.getRootNotes(notes: notes, email: account.email).count)")
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
       )
     }
