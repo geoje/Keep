@@ -77,10 +77,9 @@ struct ContentView: View {
           Task {
             do {
               if chromeProfileService == nil {
-                chromeProfileService = ChromeProfileService(
-                  chromeDriverService: chromeDriverService)
+                chromeProfileService = ChromeProfileService()
               }
-              try await chromeProfileService?.startLogin()
+              try await chromeProfileService?.startAdd()
             } catch {
               errorMessage = error.localizedDescription
               showingErrorAlert = true

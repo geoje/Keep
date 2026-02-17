@@ -86,6 +86,7 @@ class ChromeDriverService: ObservableObject {
         withIntermediateDirectories: true
       )
       chromeArgs.append("--user-data-dir=\(chromeDataDir.path)")
+      chromeArgs.append("--profile-directory=Default")
     }
 
     let body: [String: Any] = [
