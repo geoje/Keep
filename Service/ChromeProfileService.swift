@@ -2,21 +2,21 @@ import Combine
 import Foundation
 
 @MainActor
-class ChromePlayLoginService: ObservableObject {
+class ChromeProfileService: ObservableObject {
   private let chromeDriverService: ChromeDriverService
   private var monitorTask: Task<Void, Never>?
-  var onLoginSuccess: ((String, String) -> Void)?
 
   init(chromeDriverService: ChromeDriverService) {
     self.chromeDriverService = chromeDriverService
   }
 
   func startLogin() async throws {
-    try await chromeDriverService.launchChrome(url: "https://accounts.google.com/EmbeddedSetup")
+    try await chromeDriverService.launchChrome(
+      url: "https://accounts.google.com/ServiceLogin?continue=https://myaccount.google.com")
     chromeDriverService.registerCleanupCallback { [weak self] in
       self?.stopMonitoring()
     }
-    startMonitoring()
+    // startMonitoring()
   }
 
   func stopMonitoring() {
@@ -37,34 +37,34 @@ class ChromePlayLoginService: ObservableObject {
           return
         }
 
-        guard let cookies = await self.getCookies(sessionId: sessionId) else {
+        guard let currentURL = await self.getCurrentURL(sessionId: sessionId) else {
           self.stopMonitoring()
           await self.chromeDriverService.cleanup()
           return
         }
 
-        for cookie in cookies {
-          if let name = cookie["name"] as? String,
-            name == "oauth_token",
-            let oauthToken = cookie["value"] as? String
-          {
-            guard let email = await self.extractEmail(sessionId: sessionId) else {
-              self.stopMonitoring()
-              await self.chromeDriverService.cleanup()
-              return
-            }
-            self.stopMonitoring()
-            await self.chromeDriverService.cleanup()
-            self.onLoginSuccess?(email, oauthToken)
-            return
+        if let url = URL(string: currentURL),
+          url.host == "myaccount.google.com"
+        {
+
+          if let picture = await self.extractPicture(sessionId: sessionId) {
+            print("Picture: \(picture)")
           }
+
+          if let email = await self.extractEmail(sessionId: sessionId) {
+            print("Email: \(email)")
+          }
+
+          self.stopMonitoring()
+          await self.chromeDriverService.cleanup()
+          return
         }
       }
     }
   }
 
-  private func getCookies(sessionId: String) async -> [[String: Any]]? {
-    let url = URL(string: "http://localhost:9515/session/\(sessionId)/cookie")!
+  private func getCurrentURL(sessionId: String) async -> String? {
+    let url = URL(string: "http://localhost:9515/session/\(sessionId)/url")!
     var request = URLRequest(url: url)
     request.httpMethod = "GET"
 
@@ -75,7 +75,7 @@ class ChromePlayLoginService: ObservableObject {
       else { return nil }
 
       if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let value = json["value"] as? [[String: Any]]
+        let value = json["value"] as? String
       {
         return value
       }
@@ -85,10 +85,18 @@ class ChromePlayLoginService: ObservableObject {
     return nil
   }
 
+  private func extractPicture(sessionId: String) async -> String? {
+    let script = """
+      const imgElement = document.querySelector('button[aria-label="change profile picture"] img');
+      return imgElement ? imgElement.src : null;
+      """
+    return await executeScript(sessionId: sessionId, script: script)
+  }
+
   private func extractEmail(sessionId: String) async -> String? {
     let script = """
-      const emailElement = document.querySelector('[data-email]');
-      return emailElement ? emailElement.getAttribute('data-email') : null;
+      const metaElement = document.querySelector('meta[name="og-profile-acct"]');
+      return metaElement ? metaElement.getAttribute('content') : null;
       """
     return await executeScript(sessionId: sessionId, script: script)
   }

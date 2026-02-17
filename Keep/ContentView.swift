@@ -11,8 +11,8 @@ struct ContentView: View {
   @State private var errorMessage = ""
   @StateObject private var viewModel = ContentViewModel()
   @StateObject private var chromeDriverService = ChromeDriverService()
-  @State private var playServiceLoginService: ChromePlayLoginService?
-  @State private var directLoginService: ChromeDirectLoginService?
+  @State private var chromePlayService: ChromePlayService?
+  @State private var chromeProfileService: ChromeProfileService?
 
   var body: some View {
     let content: some View =
@@ -57,16 +57,16 @@ struct ContentView: View {
         Button("Login Play Service") {
           Task {
             do {
-              if playServiceLoginService == nil {
-                playServiceLoginService = ChromePlayLoginService(
+              if chromePlayService == nil {
+                chromePlayService = ChromePlayService(
                   chromeDriverService: chromeDriverService)
-                playServiceLoginService?.onLoginSuccess = { email, oauthToken in
+                chromePlayService?.onLoginSuccess = { email, oauthToken in
                   Task {
                     await handlePlayLoginSuccess(email: email, oauthToken: oauthToken)
                   }
                 }
               }
-              try await playServiceLoginService?.startLogin()
+              try await chromePlayService?.startLogin()
             } catch {
               errorMessage = error.localizedDescription
               showingErrorAlert = true
@@ -76,11 +76,11 @@ struct ContentView: View {
         Button("Add Chrome Profile") {
           Task {
             do {
-              if directLoginService == nil {
-                directLoginService = ChromeDirectLoginService(
+              if chromeProfileService == nil {
+                chromeProfileService = ChromeProfileService(
                   chromeDriverService: chromeDriverService)
               }
-              try await directLoginService?.startLogin()
+              try await chromeProfileService?.startLogin()
             } catch {
               errorMessage = error.localizedDescription
               showingErrorAlert = true
