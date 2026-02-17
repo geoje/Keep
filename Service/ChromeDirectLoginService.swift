@@ -16,7 +16,7 @@ class ChromeDirectLoginService: ObservableObject {
     chromeDriverService.registerCleanupCallback { [weak self] in
       self?.stopMonitoring()
     }
-    startMonitoring()
+    // startMonitoring()
   }
 
   func stopMonitoring() {

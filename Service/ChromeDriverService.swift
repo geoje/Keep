@@ -69,18 +69,31 @@ class ChromeDriverService: ObservableObject {
     request.httpMethod = "POST"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
+    var chromeArgs = [
+      "--disable-blink-features=AutomationControlled",
+      "--no-default-browser-check",
+      "--disable-infobars",
+      "--no-first-run",
+      "--test-type",
+    ]
+
+    if let appSupportURL = FileManager.default.urls(
+      for: .applicationSupportDirectory, in: .userDomainMask
+    ).first {
+      let chromeDataDir = appSupportURL.appendingPathComponent("Google/Chrome for Testing")
+      try? FileManager.default.createDirectory(
+        at: chromeDataDir,
+        withIntermediateDirectories: true
+      )
+      chromeArgs.append("--user-data-dir=\(chromeDataDir.path)")
+    }
+
     let body: [String: Any] = [
       "capabilities": [
         "alwaysMatch": [
           "goog:chromeOptions": [
             "binary": chromePath,
-            "args": [
-              "--disable-blink-features=AutomationControlled",
-              "--no-first-run",
-              "--no-default-browser-check",
-              "--disable-infobars",
-              "--test-type",
-            ],
+            "args": chromeArgs,
             "excludeSwitches": ["enable-automation"],
           ]
         ]

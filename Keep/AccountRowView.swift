@@ -113,15 +113,38 @@ struct AccountRowView: View {
       )
     } else {
       return AnyView(
-        HStack(spacing: 4) {
-          Image(systemName: "document")
-            .font(.system(size: 12))
-            .foregroundStyle(.secondary)
-          Text("\(noteService.getRootNotes(notes: notes, email: account.email).count)")
-            .font(.caption)
-            .foregroundStyle(.secondary)
+        HStack(spacing: 16) {
+          HStack(spacing: 4) {
+            Image(systemName: "document")
+              .font(.system(size: 12))
+              .foregroundStyle(.secondary)
+            Text("\(noteService.getRootNotes(notes: notes, email: account.email).count)")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+
+          if !account.masterToken.isEmpty {
+            HStack(spacing: 4) {
+              Image(systemName: "key")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+              Text(formatMasterToken(account.masterToken))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .monospaced()
+            }
+          }
         }
       )
     }
+  }
+
+  private func formatMasterToken(_ token: String) -> String {
+    guard let slashIndex = token.firstIndex(of: "/") else {
+      return token
+    }
+
+    let prefix = token[...slashIndex]
+    return "\(prefix)*"
   }
 }
