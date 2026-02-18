@@ -35,9 +35,9 @@ class ContentViewModel: ObservableObject {
     playAccountViewModel.selectAccount(account, modelContext: modelContext, completion: completion)
   }
 
-  func selectProfileAccount(_ account: ProfileAccount, modelContext: ModelContext) {
+  func selectProfileAccount(_ account: ProfileAccount) {
     playAccountViewModel.clearSelection()
-    profileAccountViewModel.selectAccount(account, modelContext: modelContext)
+    profileAccountViewModel.selectAccount(account)
   }
 
   func deleteSelectedAccount(

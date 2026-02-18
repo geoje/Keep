@@ -49,6 +49,9 @@ private struct PlayServiceAccountSectionContentView: View {
   @ObservedObject var playAccountViewModel: PlayAccountViewModel
   @Environment(\.modelContext) private var modelContext
 
+  @Query private var notes: [Note]
+  private var noteService: NoteService { NoteService() }
+
   init(accounts: [PlayAccount], contentViewModel: ContentViewModel) {
     self.accounts = accounts
     self.contentViewModel = contentViewModel
@@ -58,11 +61,13 @@ private struct PlayServiceAccountSectionContentView: View {
   var body: some View {
     ForEach(accounts) { account in
       let isSelected = playAccountViewModel.selectedAccount?.email == account.email
+      let noteCount = noteService.getRootNotes(notes: notes, email: account.email).count
       AccountRowView(
         account: account,
         isSelected: isSelected,
         isLoading: playAccountViewModel.loadingStates[account.email] ?? false,
         errorMessage: playAccountViewModel.errorMessages[account.email],
+        noteCount: noteCount,
         hoveredAccountEmail: $playAccountViewModel.hoveredEmail,
         onTap: {
           contentViewModel.selectPlayAccount(account, modelContext: modelContext)
@@ -76,7 +81,6 @@ private struct ChromeProfileAccountSectionContentView: View {
   let accounts: [ProfileAccount]
   @ObservedObject var contentViewModel: ContentViewModel
   @ObservedObject var profileAccountViewModel: ProfileAccountViewModel
-  @Environment(\.modelContext) private var modelContext
 
   init(accounts: [ProfileAccount], contentViewModel: ContentViewModel) {
     self.accounts = accounts
@@ -92,9 +96,10 @@ private struct ChromeProfileAccountSectionContentView: View {
         isSelected: isSelected,
         isLoading: profileAccountViewModel.loadingStates[account.email] ?? false,
         errorMessage: profileAccountViewModel.errorMessages[account.email],
+        noteCount: 0,
         hoveredAccountEmail: $profileAccountViewModel.hoveredEmail,
         onTap: {
-          contentViewModel.selectProfileAccount(account, modelContext: modelContext)
+          contentViewModel.selectProfileAccount(account)
         }
       )
     }

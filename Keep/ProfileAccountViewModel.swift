@@ -9,7 +9,7 @@ class ProfileAccountViewModel: ObservableObject {
   @Published var loadingStates: [String: Bool] = [:]
   @Published var errorMessages: [String: String] = [:]
 
-  func selectAccount(_ account: ProfileAccount, modelContext: ModelContext) {
+  func selectAccount(_ account: ProfileAccount) {
     if selectedAccount?.email == account.email {
       selectedAccount = nil
     } else {

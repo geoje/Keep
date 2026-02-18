@@ -6,12 +6,9 @@ struct AccountRowView<T: Account>: View {
   let isSelected: Bool
   let isLoading: Bool
   let errorMessage: String?
+  let noteCount: Int
   @Binding var hoveredAccountEmail: String?
   let onTap: () -> Void
-
-  @Query private var notes: [Note]
-
-  private var noteService: NoteService { NoteService() }
 
   var body: some View {
     HStack(spacing: 12) {
@@ -117,20 +114,11 @@ struct AccountRowView<T: Account>: View {
           Image(systemName: "document")
             .font(.system(size: 12))
             .foregroundStyle(.secondary)
-          Text("\(noteService.getRootNotes(notes: notes, email: account.email).count)")
+          Text("\(noteCount)")
             .font(.caption)
             .foregroundStyle(.secondary)
         }
       )
     }
-  }
-
-  private func formatMasterToken(_ token: String) -> String {
-    guard let slashIndex = token.firstIndex(of: "/") else {
-      return token
-    }
-
-    let prefix = token[...slashIndex]
-    return "\(prefix)*"
   }
 }
