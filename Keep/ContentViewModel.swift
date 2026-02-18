@@ -11,12 +11,21 @@ enum AccountSection {
 @MainActor
 class ContentViewModel: ObservableObject {
   @Published var showDeleteConfirm = false
+  @Published var hasSelectedAccount = false
 
   let playAccountViewModel = PlayAccountViewModel()
   let profileAccountViewModel = ProfileAccountViewModel()
 
-  var hasSelectedAccount: Bool {
-    playAccountViewModel.selectedAccount != nil || profileAccountViewModel.selectedAccount != nil
+  private var cancellables = Set<AnyCancellable>()
+
+  init() {
+    // Observe changes in both view models
+    playAccountViewModel.$selectedAccount
+      .combineLatest(profileAccountViewModel.$selectedAccount)
+      .map { playAccount, profileAccount in
+        playAccount != nil || profileAccount != nil
+      }
+      .assign(to: &$hasSelectedAccount)
   }
 
   func selectPlayAccount(

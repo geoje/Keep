@@ -39,7 +39,9 @@ struct ContentView: View {
         Text("Are you sure you want to delete this account?")
       }
       .toolbar {
-        if viewModel.hasSelectedAccount {
+        if viewModel.playAccountViewModel.selectedAccount != nil
+          || viewModel.profileAccountViewModel.selectedAccount != nil
+        {
           ToolbarItem(placement: .automatic) {
             Button(action: {
               viewModel.showDeleteConfirm = true
