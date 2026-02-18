@@ -4,7 +4,7 @@ import SwiftData
 extension ModelContainer {
   static let shared: ModelContainer = {
     let schema = Schema([
-      Account.self,
+      PlayAccount.self,
       Note.self,
     ])
 

@@ -2,8 +2,8 @@ import SwiftData
 import SwiftUI
 
 struct AccountListView: View {
-  let playServiceAccounts: [Account]
-  let chromeProfileAccounts: [Account]
+  let playServiceAccounts: [PlayAccount]
+  let chromeProfileAccounts: [ProfileAccount]
   @ObservedObject var viewModel: ContentViewModel
   @Environment(\.modelContext) private var modelContext
 
@@ -16,9 +16,8 @@ struct AccountListView: View {
         SectionHeaderView(title: "Play Service", isExpanded: $isPlayServiceExpanded)
 
         if isPlayServiceExpanded {
-          AccountSectionContentView(
+          PlayServiceAccountSectionContentView(
             accounts: playServiceAccounts,
-            section: .playService,
             viewModel: viewModel,
             hoveredEmail: $viewModel.hoveredPlayServiceEmail
           )
@@ -30,9 +29,8 @@ struct AccountListView: View {
           .padding(.top, 8)
 
         if isChromeProfileExpanded {
-          AccountSectionContentView(
+          ChromeProfileAccountSectionContentView(
             accounts: chromeProfileAccounts,
-            section: .chromeProfile,
             viewModel: viewModel,
             hoveredEmail: $viewModel.hoveredChromeProfileEmail
           )
@@ -47,25 +45,58 @@ struct AccountListView: View {
   }
 }
 
-private struct AccountSectionContentView: View {
-  let accounts: [Account]
-  let section: AccountSection
+private struct PlayServiceAccountSectionContentView: View {
+  let accounts: [PlayAccount]
   @ObservedObject var viewModel: ContentViewModel
   @Binding var hoveredEmail: String?
   @Environment(\.modelContext) private var modelContext
 
   var body: some View {
     ForEach(accounts) { account in
-      let identifier = AccountIdentifier(section: section, email: account.email)
+      let identifier = AccountIdentifier(section: .playService, email: account.email)
+      let isSelected: Bool = {
+        if case .playService(let selectedAccount) = viewModel.selectedAccount {
+          return selectedAccount.email == account.email
+        }
+        return false
+      }()
       AccountRowView(
         account: account,
-        isSelected: viewModel.selectedAccount?.section == section
-          && viewModel.selectedAccount?.account.email == account.email,
+        isSelected: isSelected,
         isLoading: viewModel.loadingStates[identifier] ?? false,
         errorMessage: viewModel.errorMessages[identifier],
         hoveredAccountEmail: $hoveredEmail,
         onTap: {
-          viewModel.selectAccount(account, section: section, modelContext: modelContext)
+          viewModel.selectAccount(account, section: .playService, modelContext: modelContext)
+        }
+      )
+    }
+  }
+}
+
+private struct ChromeProfileAccountSectionContentView: View {
+  let accounts: [ProfileAccount]
+  @ObservedObject var viewModel: ContentViewModel
+  @Binding var hoveredEmail: String?
+  @Environment(\.modelContext) private var modelContext
+
+  var body: some View {
+    ForEach(accounts) { account in
+      let identifier = AccountIdentifier(section: .chromeProfile, email: account.email)
+      let isSelected: Bool = {
+        if case .chromeProfile(let selectedAccount) = viewModel.selectedAccount {
+          return selectedAccount.email == account.email
+        }
+        return false
+      }()
+      AccountRowView(
+        account: account,
+        isSelected: isSelected,
+        isLoading: viewModel.loadingStates[identifier] ?? false,
+        errorMessage: viewModel.errorMessages[identifier],
+        hoveredAccountEmail: $hoveredEmail,
+        onTap: {
+          viewModel.selectProfileAccount(account, modelContext: modelContext)
         }
       )
     }

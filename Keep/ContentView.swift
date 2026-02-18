@@ -4,7 +4,7 @@ import SwiftUI
 
 struct ContentView: View {
   @Environment(\.modelContext) private var modelContext
-  @Query(sort: \Account.email, order: .forward) private var accounts: [Account]
+  @Query(sort: \PlayAccount.email, order: .forward) private var accounts: [PlayAccount]
 
   @State private var showingAddAccountOptions = false
   @State private var showingErrorAlert = false
@@ -13,7 +13,7 @@ struct ContentView: View {
   @StateObject private var chromeDriverService = ChromeDriverService()
   @State private var chromePlayService: ChromePlayService?
   @State private var chromeProfileService: ChromeProfileService?
-  @State private var chromeProfileAccounts: [Account] = []
+  @State private var chromeProfileAccounts: [ProfileAccount] = []
 
   var body: some View {
     let content: some View =
@@ -33,8 +33,8 @@ struct ContentView: View {
         Button("Delete", role: .destructive) {
           if let selected = viewModel.selectedAccount {
             viewModel.deleteSelectedAccount(modelContext: modelContext)
-            if selected.section == .chromeProfile {
-              chromeProfileAccounts.removeAll { $0.email == selected.account.email }
+            if case .chromeProfile(let profileAccount) = selected {
+              chromeProfileAccounts.removeAll { $0.email == profileAccount.email }
             }
           }
         }
@@ -146,7 +146,7 @@ struct ContentView: View {
       let masterToken = try await authService.fetchMasterToken(
         email: email, oauthToken: oauthToken)
 
-      let newAccount = Account(email: email, masterToken: masterToken)
+      let newAccount = PlayAccount(email: email, masterToken: masterToken)
       modelContext.insert(newAccount)
       try modelContext.save()
 
@@ -165,11 +165,12 @@ struct ContentView: View {
     guard let service = chromeProfileService else { return }
 
     let profileNames = service.getCurrentProfiles()
-    var loadedAccounts: [Account] = []
+    var loadedAccounts: [ProfileAccount] = []
 
     for profileName in profileNames {
       if let accountInfo = service.parseProfileAccountInfo(profileName: profileName) {
-        let account = Account(email: accountInfo.email, picture: accountInfo.pictureUrl)
+        let account = ProfileAccount(
+          email: accountInfo.email, picture: accountInfo.pictureUrl, profileName: profileName)
         loadedAccounts.append(account)
       }
     }
@@ -180,12 +181,12 @@ struct ContentView: View {
 
 #Preview("Empty Accounts") {
   ContentView()
-    .modelContainer(for: [Account.self, Note.self], inMemory: true)
+    .modelContainer(for: [PlayAccount.self, Note.self], inMemory: true)
 }
 
 #Preview("With Accounts") {
   let container = try! ModelContainer(
-    for: Schema([Account.self, Note.self]),
+    for: Schema([PlayAccount.self, Note.self]),
     configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]
   )
 
@@ -193,15 +194,16 @@ struct ContentView: View {
 
   return AccountListView(
     playServiceAccounts: [
-      Account(
+      PlayAccount(
         email: "boy@gmail.com",
         picture: "https://cdn-icons-png.flaticon.com/128/16683/16683419.png"
       )
     ],
     chromeProfileAccounts: [
-      Account(
+      ProfileAccount(
         email: "girl@gmail.com",
-        picture: "https://cdn-icons-png.flaticon.com/128/16683/16683451.png"
+        picture: "https://cdn-icons-png.flaticon.com/128/16683/16683451.png",
+        profileName: "Profile 1"
       )
     ],
     viewModel: viewModel

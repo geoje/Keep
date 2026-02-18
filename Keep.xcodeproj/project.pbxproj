@@ -56,16 +56,18 @@
 				Account.swift,
 				ModelContainer.swift,
 				Note.swift,
+				PlayAccount.swift,
+				ProfileAccount.swift,
 			);
 			target = 85C16FF02F2E60550030AABC /* NoteWidgetsExtension */;
 		};
 		8564A1E92F2F58FB0014F5E4 /* Exceptions for "Service" folder in "NoteWidgetsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				AccountService.swift,
 				GoogleAuthService.swift,
 				GoogleKeepService.swift,
 				NoteService.swift,
+				PlayAccountService.swift,
 			);
 			target = 85C16FF02F2E60550030AABC /* NoteWidgetsExtension */;
 		};

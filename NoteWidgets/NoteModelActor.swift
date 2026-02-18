@@ -14,7 +14,7 @@ actor NoteModelActor: ModelActor {
   }
 
   func fetchNotes() throws -> [NoteEntity] {
-    let accountDescriptor = FetchDescriptor<Account>(sortBy: [SortDescriptor(\.email)])
+    let accountDescriptor = FetchDescriptor<PlayAccount>(sortBy: [SortDescriptor(\.email)])
     let noteDescriptor = FetchDescriptor<Note>()
     let accounts = try modelContext.fetch(accountDescriptor)
     let allNotes = try modelContext.fetch(noteDescriptor)
@@ -46,7 +46,7 @@ actor NoteModelActor: ModelActor {
   }
 
   func syncNotesForAccount(email: String) async throws {
-    let accountDescriptor = FetchDescriptor<Account>(
+    let accountDescriptor = FetchDescriptor<PlayAccount>(
       predicate: #Predicate { $0.email == email }
     )
     if let account = try modelContext.fetch(accountDescriptor).first {

@@ -1,8 +1,8 @@
 import SwiftData
 import SwiftUI
 
-struct AccountRowView: View {
-  let account: Account
+struct AccountRowView<T: Account>: View {
+  let account: T
   let isSelected: Bool
   let isLoading: Bool
   let errorMessage: String?
