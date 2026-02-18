@@ -23,7 +23,7 @@ struct ContentView: View {
         AnyView(
           AccountListView(
             playServiceAccounts: accounts, chromeProfileAccounts: chromeProfileAccounts,
-            viewModel: viewModel))
+            contentViewModel: viewModel))
       }
     return
       content
@@ -31,18 +31,15 @@ struct ContentView: View {
       .alert("🗑️ Delete Account", isPresented: $viewModel.showDeleteConfirm) {
         Button("Cancel", role: .cancel) {}
         Button("Delete", role: .destructive) {
-          if let selected = viewModel.selectedAccount {
-            viewModel.deleteSelectedAccount(modelContext: modelContext)
-            if case .chromeProfile(let profileAccount) = selected {
-              chromeProfileAccounts.removeAll { $0.email == profileAccount.email }
-            }
+          viewModel.deleteSelectedAccount(modelContext: modelContext) { profileAccount in
+            chromeProfileAccounts.removeAll { $0.email == profileAccount.email }
           }
         }
       } message: {
         Text("Are you sure you want to delete this account?")
       }
       .toolbar {
-        if viewModel.selectedAccount != nil {
+        if viewModel.hasSelectedAccount {
           ToolbarItem(placement: .automatic) {
             Button(action: {
               viewModel.showDeleteConfirm = true
@@ -125,8 +122,8 @@ struct ContentView: View {
                 ).first
                 if let note = note, let account = accounts.first(where: { $0.email == note.email })
                 {
-                  viewModel.selectAccount(
-                    account, section: .playService, modelContext: modelContext
+                  viewModel.selectPlayAccount(
+                    account, modelContext: modelContext
                   ) {
                     NSApplication.shared.terminate(nil)
                   }
@@ -150,7 +147,7 @@ struct ContentView: View {
       modelContext.insert(newAccount)
       try modelContext.save()
 
-      viewModel.selectAccount(newAccount, section: .playService, modelContext: modelContext)
+      viewModel.selectPlayAccount(newAccount, modelContext: modelContext)
     } catch {
       errorMessage = error.localizedDescription
       showingErrorAlert = true
@@ -206,7 +203,7 @@ struct ContentView: View {
         profileName: "Profile 1"
       )
     ],
-    viewModel: viewModel
+    contentViewModel: viewModel
   )
   .modelContainer(container)
 }
