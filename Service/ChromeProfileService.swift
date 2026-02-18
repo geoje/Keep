@@ -1,11 +1,21 @@
 import Combine
 import Foundation
 
+struct ProfileAccountInfo {
+  let email: String
+  let pictureUrl: String
+}
+
 @MainActor
 class ChromeProfileService: ObservableObject {
-  private var chromeProcess: Process?
+  private let chromeDriverService: ChromeDriverService
   private var monitorTask: Task<Void, Never>?
   private var initialProfiles: Set<String> = []
+  var onAddSuccess: (() -> Void)?
+
+  init(chromeDriverService: ChromeDriverService) {
+    self.chromeDriverService = chromeDriverService
+  }
 
   func startAdd() async throws {
     guard
@@ -38,7 +48,6 @@ class ChromeProfileService: ObservableObject {
     ]
 
     try process.run()
-    chromeProcess = process
 
     startMonitoring()
   }
@@ -51,33 +60,36 @@ class ChromeProfileService: ObservableObject {
   private func startMonitoring() {
     monitorTask?.cancel()
 
-    // Capture initial profile state
-    initialProfiles = getCurrentProfiles()
-
     monitorTask = Task { [weak self] in
       guard let self = self else { return }
+
+      // Capture initial profile state after Chrome has started
+      self.initialProfiles = self.getCurrentProfiles()
 
       while !Task.isCancelled {
         try? await Task.sleep(for: .seconds(1))
 
         let currentProfiles = self.getCurrentProfiles()
 
-        // Check if a new profile was added
-        if currentProfiles.count > self.initialProfiles.count {
-          let newProfiles = currentProfiles.subtracting(self.initialProfiles)
-          if !newProfiles.isEmpty {
-            // New profile detected, terminate chrome process
-            self.chromeProcess?.terminate()
-            self.chromeProcess = nil
-            self.stopMonitoring()
-            return
+        // Check if a new profile was added (profiles that exist now but didn't exist initially)
+        let newProfiles = currentProfiles.subtracting(self.initialProfiles)
+        if !newProfiles.isEmpty {
+          // Check all current profiles for NewTabPage
+          for profileName in currentProfiles {
+            if self.hasNewTabPage(profileName: profileName) {
+              // Profile with NewTabPage detected, cleanup
+              self.stopMonitoring()
+              await self.chromeDriverService.cleanup()
+              self.onAddSuccess?()
+              return
+            }
           }
         }
       }
     }
   }
 
-  private func getCurrentProfiles() -> Set<String> {
+  func getCurrentProfiles() -> Set<String> {
     guard let chromeDataDir = getChromeDataDirectory() else {
       return []
     }
@@ -86,7 +98,7 @@ class ChromeProfileService: ObservableObject {
     guard
       let contents = try? fileManager.contentsOfDirectory(
         at: chromeDataDir,
-        includingPropertiesForKeys: [.isDirectoryKey],
+        includingPropertiesForKeys: [.isDirectoryKey, .creationDateKey],
         options: [.skipsHiddenFiles]
       )
     else {
@@ -98,14 +110,62 @@ class ChromeProfileService: ObservableObject {
       let resourceValues = try? url.resourceValues(forKeys: [.isDirectoryKey])
       if resourceValues?.isDirectory == true {
         let name = url.lastPathComponent
-        // Match Default, Profile 1, Profile 2, etc.
+        // Match Default, Profile 1, Profile 2, etc. (exclude Guest Profile)
         if name == "Default" || name.starts(with: "Profile ") {
-          profiles.insert(name)
+          // Check if profile has Preferences file (indicates it's fully created)
+          let preferencesPath = url.appendingPathComponent("Preferences")
+          if fileManager.fileExists(atPath: preferencesPath.path) {
+            profiles.insert(name)
+          }
         }
       }
     }
 
     return profiles
+  }
+
+  func parseProfileAccountInfo(profileName: String) -> ProfileAccountInfo? {
+    guard let chromeDataDir = getChromeDataDirectory() else {
+      return nil
+    }
+
+    let preferencesPath =
+      chromeDataDir
+      .appendingPathComponent(profileName)
+      .appendingPathComponent("Preferences")
+
+    guard let data = try? Data(contentsOf: preferencesPath),
+      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+      let accountInfoArray = json["account_info"] as? [[String: Any]],
+      let firstAccount = accountInfoArray.first,
+      let email = firstAccount["email"] as? String,
+      let pictureUrl = firstAccount["picture_url"] as? String,
+      !email.isEmpty,
+      !pictureUrl.isEmpty
+    else {
+      return nil
+    }
+
+    return ProfileAccountInfo(email: email, pictureUrl: pictureUrl)
+  }
+
+  private func hasNewTabPage(profileName: String) -> Bool {
+    guard let chromeDataDir = getChromeDataDirectory() else {
+      return false
+    }
+
+    let preferencesPath =
+      chromeDataDir
+      .appendingPathComponent(profileName)
+      .appendingPathComponent("Preferences")
+
+    guard let data = try? Data(contentsOf: preferencesPath),
+      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    else {
+      return false
+    }
+
+    return json["NewTabPage"] != nil
   }
 
   private func getChromeDataDirectory() -> URL? {

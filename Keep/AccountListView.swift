@@ -13,71 +13,29 @@ struct AccountListView: View {
   var body: some View {
     List {
       if !playServiceAccounts.isEmpty {
-        HStack {
-          Image(systemName: isPlayServiceExpanded ? "chevron.down" : "chevron.right")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-          Text("Play Service")
-            .font(.headline)
-            .foregroundStyle(.primary)
-          Spacer()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .padding(.leading, 8)
-        .listRowSeparator(.hidden)
-        .onTapGesture {
-          withAnimation(.easeInOut(duration: 0.2)) {
-            isPlayServiceExpanded.toggle()
-          }
-        }
+        SectionHeaderView(title: "Play Service", isExpanded: $isPlayServiceExpanded)
 
         if isPlayServiceExpanded {
-          ForEach(playServiceAccounts) { account in
-            AccountRowView(
-              account: account,
-              isSelected: viewModel.selectedAccount?.email == account.email,
-              isLoading: viewModel.loadingStates[account.email] ?? false,
-              errorMessage: viewModel.errorMessages[account.email],
-              hoveredAccountEmail: $viewModel.hoveredAccountEmail,
-              onTap: { viewModel.selectAccount(account, modelContext: modelContext) }
-            )
-          }
+          AccountSectionContentView(
+            accounts: playServiceAccounts,
+            section: .playService,
+            viewModel: viewModel,
+            hoveredEmail: $viewModel.hoveredPlayServiceEmail
+          )
         }
       }
 
       if !chromeProfileAccounts.isEmpty {
-        HStack {
-          Image(systemName: isChromeProfileExpanded ? "chevron.down" : "chevron.right")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-          Text("Chrome Profile")
-            .font(.headline)
-            .foregroundStyle(.primary)
-          Spacer()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .padding(.leading, 8)
-        .padding(.top, 8)
-        .listRowSeparator(.hidden)
-        .onTapGesture {
-          withAnimation(.easeInOut(duration: 0.2)) {
-            isChromeProfileExpanded.toggle()
-          }
-        }
+        SectionHeaderView(title: "Chrome Profile", isExpanded: $isChromeProfileExpanded)
+          .padding(.top, 8)
 
         if isChromeProfileExpanded {
-          ForEach(chromeProfileAccounts) { account in
-            AccountRowView(
-              account: account,
-              isSelected: viewModel.selectedAccount?.email == account.email,
-              isLoading: viewModel.loadingStates[account.email] ?? false,
-              errorMessage: viewModel.errorMessages[account.email],
-              hoveredAccountEmail: $viewModel.hoveredAccountEmail,
-              onTap: { viewModel.selectAccount(account, modelContext: modelContext) }
-            )
-          }
+          AccountSectionContentView(
+            accounts: chromeProfileAccounts,
+            section: .chromeProfile,
+            viewModel: viewModel,
+            hoveredEmail: $viewModel.hoveredChromeProfileEmail
+          )
         }
       }
     }
@@ -85,6 +43,57 @@ struct AccountListView: View {
     .safeAreaInset(edge: .bottom) {
       Rectangle()
         .frame(height: 0)
+    }
+  }
+}
+
+private struct AccountSectionContentView: View {
+  let accounts: [Account]
+  let section: AccountSection
+  @ObservedObject var viewModel: ContentViewModel
+  @Binding var hoveredEmail: String?
+  @Environment(\.modelContext) private var modelContext
+
+  var body: some View {
+    ForEach(accounts) { account in
+      let identifier = AccountIdentifier(section: section, email: account.email)
+      AccountRowView(
+        account: account,
+        isSelected: viewModel.selectedAccount?.section == section
+          && viewModel.selectedAccount?.account.email == account.email,
+        isLoading: viewModel.loadingStates[identifier] ?? false,
+        errorMessage: viewModel.errorMessages[identifier],
+        hoveredAccountEmail: $hoveredEmail,
+        onTap: {
+          viewModel.selectAccount(account, section: section, modelContext: modelContext)
+        }
+      )
+    }
+  }
+}
+
+private struct SectionHeaderView: View {
+  let title: String
+  @Binding var isExpanded: Bool
+
+  var body: some View {
+    HStack {
+      Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+      Text(title)
+        .font(.headline)
+        .foregroundStyle(.primary)
+      Spacer()
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .contentShape(Rectangle())
+    .padding(.leading, 8)
+    .listRowSeparator(.hidden)
+    .onTapGesture {
+      withAnimation(.easeInOut(duration: 0.2)) {
+        isExpanded.toggle()
+      }
     }
   }
 }

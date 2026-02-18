@@ -13,6 +13,7 @@ struct ContentView: View {
   @StateObject private var chromeDriverService = ChromeDriverService()
   @State private var chromePlayService: ChromePlayService?
   @State private var chromeProfileService: ChromeProfileService?
+  @State private var chromeProfileAccounts: [Account] = []
 
   var body: some View {
     let content: some View =
@@ -21,7 +22,8 @@ struct ContentView: View {
       } else {
         AnyView(
           AccountListView(
-            playServiceAccounts: accounts, chromeProfileAccounts: [], viewModel: viewModel))
+            playServiceAccounts: accounts, chromeProfileAccounts: chromeProfileAccounts,
+            viewModel: viewModel))
       }
     return
       content
@@ -29,7 +31,12 @@ struct ContentView: View {
       .alert("🗑️ Delete Account", isPresented: $viewModel.showDeleteConfirm) {
         Button("Cancel", role: .cancel) {}
         Button("Delete", role: .destructive) {
-          viewModel.deleteSelectedAccount(modelContext: modelContext)
+          if let selected = viewModel.selectedAccount {
+            viewModel.deleteSelectedAccount(modelContext: modelContext)
+            if selected.section == .chromeProfile {
+              chromeProfileAccounts.removeAll { $0.email == selected.account.email }
+            }
+          }
         }
       } message: {
         Text("Are you sure you want to delete this account?")
@@ -77,7 +84,13 @@ struct ContentView: View {
           Task {
             do {
               if chromeProfileService == nil {
-                chromeProfileService = ChromeProfileService()
+                chromeProfileService = ChromeProfileService(
+                  chromeDriverService: chromeDriverService)
+                chromeProfileService?.onAddSuccess = {
+                  Task {
+                    loadChromeProfiles()
+                  }
+                }
               }
               try await chromeProfileService?.startAdd()
             } catch {
@@ -97,6 +110,9 @@ struct ContentView: View {
       } message: {
         Text(errorMessage)
       }
+      .onAppear {
+        loadChromeProfiles()
+      }
       .onOpenURL { url in
         if url.scheme == "https" {
           NSWorkspace.shared.open(url)
@@ -109,7 +125,9 @@ struct ContentView: View {
                 ).first
                 if let note = note, let account = accounts.first(where: { $0.email == note.email })
                 {
-                  viewModel.selectAccount(account, modelContext: modelContext) {
+                  viewModel.selectAccount(
+                    account, section: .playService, modelContext: modelContext
+                  ) {
                     NSApplication.shared.terminate(nil)
                   }
                 }
@@ -132,11 +150,31 @@ struct ContentView: View {
       modelContext.insert(newAccount)
       try modelContext.save()
 
-      viewModel.selectAccount(newAccount, modelContext: modelContext)
+      viewModel.selectAccount(newAccount, section: .playService, modelContext: modelContext)
     } catch {
       errorMessage = error.localizedDescription
       showingErrorAlert = true
     }
+  }
+
+  private func loadChromeProfiles() {
+    if chromeProfileService == nil {
+      chromeProfileService = ChromeProfileService(chromeDriverService: chromeDriverService)
+    }
+
+    guard let service = chromeProfileService else { return }
+
+    let profileNames = service.getCurrentProfiles()
+    var loadedAccounts: [Account] = []
+
+    for profileName in profileNames {
+      if let accountInfo = service.parseProfileAccountInfo(profileName: profileName) {
+        let account = Account(email: accountInfo.email, picture: accountInfo.pictureUrl)
+        loadedAccounts.append(account)
+      }
+    }
+
+    chromeProfileAccounts = loadedAccounts
   }
 }
 
