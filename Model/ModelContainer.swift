@@ -7,10 +7,25 @@ extension ModelContainer {
       Account.self,
       Note.self,
     ])
-    let appGroupURL = FileManager.default.containerURL(
-      forSecurityApplicationGroupIdentifier: "group.kr.ygh.keep")!
-    try? FileManager.default.createDirectory(at: appGroupURL, withIntermediateDirectories: true)
-    let url = appGroupURL.appendingPathComponent("default.sqlite")
+
+    guard let bundleIdentifier = Bundle.main.bundleIdentifier else {
+      fatalError("Bundle identifier not found")
+    }
+
+    let fileManager = FileManager.default
+    guard
+      let appSupport = fileManager.urls(
+        for: .applicationSupportDirectory,
+        in: .userDomainMask
+      ).first
+    else {
+      fatalError("Application Support directory not found")
+    }
+
+    let dataDirectory = appSupport.appendingPathComponent(bundleIdentifier)
+    try? fileManager.createDirectory(at: dataDirectory, withIntermediateDirectories: true)
+
+    let url = dataDirectory.appendingPathComponent("default.sqlite")
     let modelConfiguration = ModelConfiguration(schema: schema, url: url)
 
     do {

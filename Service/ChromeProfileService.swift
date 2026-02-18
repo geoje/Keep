@@ -4,6 +4,8 @@ import Foundation
 @MainActor
 class ChromeProfileService: ObservableObject {
   private var chromeProcess: Process?
+  private var monitorTask: Task<Void, Never>?
+  private var initialProfiles: Set<String> = []
 
   func startAdd() async throws {
     guard
@@ -27,7 +29,93 @@ class ChromeProfileService: ObservableObject {
     try process.run()
     chromeProcess = process
 
-    // TODO: detect profile added and then terminate process
+    startMonitoring()
+  }
+
+  func stopMonitoring() {
+    monitorTask?.cancel()
+    monitorTask = nil
+  }
+
+  private func startMonitoring() {
+    monitorTask?.cancel()
+
+    // Capture initial profile state
+    initialProfiles = getCurrentProfiles()
+
+    monitorTask = Task { [weak self] in
+      guard let self = self else { return }
+
+      while !Task.isCancelled {
+        try? await Task.sleep(for: .seconds(1))
+
+        let currentProfiles = self.getCurrentProfiles()
+
+        // Check if a new profile was added
+        if currentProfiles.count > self.initialProfiles.count {
+          let newProfiles = currentProfiles.subtracting(self.initialProfiles)
+          if !newProfiles.isEmpty {
+            // New profile detected, terminate chrome process
+            self.chromeProcess?.terminate()
+            self.chromeProcess = nil
+            self.stopMonitoring()
+            return
+          }
+        }
+      }
+    }
+  }
+
+  private func getCurrentProfiles() -> Set<String> {
+    guard let chromeDataDir = getChromeDataDirectory() else {
+      return []
+    }
+
+    let fileManager = FileManager.default
+    guard
+      let contents = try? fileManager.contentsOfDirectory(
+        at: chromeDataDir,
+        includingPropertiesForKeys: [.isDirectoryKey],
+        options: [.skipsHiddenFiles]
+      )
+    else {
+      return []
+    }
+
+    var profiles: Set<String> = []
+    for url in contents {
+      let resourceValues = try? url.resourceValues(forKeys: [.isDirectoryKey])
+      if resourceValues?.isDirectory == true {
+        let name = url.lastPathComponent
+        // Match Default, Profile 1, Profile 2, etc.
+        if name == "Default" || name.starts(with: "Profile ") {
+          profiles.insert(name)
+        }
+      }
+    }
+
+    return profiles
+  }
+
+  private func getChromeDataDirectory() -> URL? {
+    guard let bundleIdentifier = Bundle.main.bundleIdentifier else {
+      return nil
+    }
+
+    let fileManager = FileManager.default
+    guard
+      let appSupport = fileManager.urls(
+        for: .applicationSupportDirectory,
+        in: .userDomainMask
+      ).first
+    else {
+      return nil
+    }
+
+    return
+      appSupport
+      .appendingPathComponent(bundleIdentifier)
+      .appendingPathComponent("Chrome")
   }
 }
 
