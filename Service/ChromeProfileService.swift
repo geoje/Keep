@@ -18,11 +18,22 @@ class ChromeProfileService: ObservableObject {
       throw ChromeProfileError.chromeNotFound
     }
 
+    guard let chromeDataDir = getChromeDataDirectory() else {
+      throw ChromeProfileError.dataDirectoryNotFound
+    }
+
+    // Create Chrome data directory if it doesn't exist
+    try? FileManager.default.createDirectory(
+      at: chromeDataDir,
+      withIntermediateDirectories: true
+    )
+
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
     process.arguments = [
       "-a", chromePath,
       "--args",
+      "--user-data-dir=\(chromeDataDir.path)",
       "--profile-directory=Guest Profile",
     ]
 
@@ -121,11 +132,14 @@ class ChromeProfileService: ObservableObject {
 
 enum ChromeProfileError: LocalizedError {
   case chromeNotFound
+  case dataDirectoryNotFound
 
   var errorDescription: String? {
     switch self {
     case .chromeNotFound:
       return "Chrome for Testing not found"
+    case .dataDirectoryNotFound:
+      return "Could not create Chrome data directory"
     }
   }
 }

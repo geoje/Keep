@@ -22,6 +22,8 @@ struct AccountListView: View {
             .foregroundStyle(.primary)
           Spacer()
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
         .padding(.leading, 8)
         .listRowSeparator(.hidden)
         .onTapGesture {
@@ -54,6 +56,8 @@ struct AccountListView: View {
             .foregroundStyle(.primary)
           Spacer()
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
         .padding(.leading, 8)
         .padding(.top, 8)
         .listRowSeparator(.hidden)
