@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 class NoteService {
-  func syncNotes(for account: PlayAccount, modelContext: ModelContext) async throws {
+  func syncNotes(for account: Account, modelContext: ModelContext) async throws {
     let accountService = PlayAccountService()
     let accessToken = try await accountService.getAccessToken(for: account)
     let keepService = GoogleKeepService()

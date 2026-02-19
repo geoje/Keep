@@ -2,8 +2,8 @@ import SwiftData
 import SwiftUI
 
 struct AccountListView: View {
-  let playServiceAccounts: [PlayAccount]
-  let chromeProfileAccounts: [ProfileAccount]
+  let playServiceAccounts: [Account]
+  let chromeProfileAccounts: [Account]
   @ObservedObject var contentViewModel: ContentViewModel
   @Environment(\.modelContext) private var modelContext
 
@@ -44,7 +44,7 @@ struct AccountListView: View {
 }
 
 private struct PlayServiceAccountSectionContentView: View {
-  let accounts: [PlayAccount]
+  let accounts: [Account]
   @ObservedObject var contentViewModel: ContentViewModel
   @ObservedObject var playAccountViewModel: PlayAccountViewModel
   @Environment(\.modelContext) private var modelContext
@@ -52,7 +52,7 @@ private struct PlayServiceAccountSectionContentView: View {
   @Query private var notes: [Note]
   private var noteService: NoteService { NoteService() }
 
-  init(accounts: [PlayAccount], contentViewModel: ContentViewModel) {
+  init(accounts: [Account], contentViewModel: ContentViewModel) {
     self.accounts = accounts
     self.contentViewModel = contentViewModel
     self.playAccountViewModel = contentViewModel.playAccountViewModel
@@ -78,11 +78,11 @@ private struct PlayServiceAccountSectionContentView: View {
 }
 
 private struct ChromeProfileAccountSectionContentView: View {
-  let accounts: [ProfileAccount]
+  let accounts: [Account]
   @ObservedObject var contentViewModel: ContentViewModel
   @ObservedObject var profileAccountViewModel: ProfileAccountViewModel
 
-  init(accounts: [ProfileAccount], contentViewModel: ContentViewModel) {
+  init(accounts: [Account], contentViewModel: ContentViewModel) {
     self.accounts = accounts
     self.contentViewModel = contentViewModel
     self.profileAccountViewModel = contentViewModel.profileAccountViewModel

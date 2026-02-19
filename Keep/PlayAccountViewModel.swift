@@ -5,7 +5,7 @@ import WidgetKit
 
 @MainActor
 class PlayAccountViewModel: ObservableObject {
-  @Published var selectedAccount: PlayAccount?
+  @Published var selectedAccount: Account?
   @Published var hoveredEmail: String?
   @Published var loadingStates: [String: Bool] = [:]
   @Published var errorMessages: [String: String] = [:]
@@ -19,7 +19,7 @@ class PlayAccountViewModel: ObservableObject {
   }
 
   func selectAccount(
-    _ account: PlayAccount, modelContext: ModelContext, completion: @escaping () -> Void = {}
+    _ account: Account, modelContext: ModelContext, completion: @escaping () -> Void = {}
   ) {
     if selectedAccount?.email == account.email {
       selectedAccount = nil

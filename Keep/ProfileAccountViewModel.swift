@@ -4,12 +4,12 @@ import SwiftUI
 
 @MainActor
 class ProfileAccountViewModel: ObservableObject {
-  @Published var selectedAccount: ProfileAccount?
+  @Published var selectedAccount: Account?
   @Published var hoveredEmail: String?
   @Published var loadingStates: [String: Bool] = [:]
   @Published var errorMessages: [String: String] = [:]
 
-  func selectAccount(_ account: ProfileAccount) {
+  func selectAccount(_ account: Account) {
     if selectedAccount?.email == account.email {
       selectedAccount = nil
     } else {
@@ -27,7 +27,7 @@ class ProfileAccountViewModel: ObservableObject {
     selectedAccount = nil
   }
 
-  func deleteAccount(modelContext: ModelContext, onDelete: @escaping (ProfileAccount) -> Void) {
+  func deleteAccount(modelContext: ModelContext, onDelete: @escaping (Account) -> Void) {
     guard let account = selectedAccount else { return }
 
     // Delete associated notes

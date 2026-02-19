@@ -4,7 +4,7 @@ import SwiftUI
 
 struct ContentView: View {
   @Environment(\.modelContext) private var modelContext
-  @Query(sort: \PlayAccount.email, order: .forward) private var accounts: [PlayAccount]
+  @Query(sort: \Account.email, order: .forward) private var accounts: [Account]
 
   @State private var showingAddAccountOptions = false
   @State private var showingErrorAlert = false
@@ -13,7 +13,7 @@ struct ContentView: View {
   @StateObject private var chromeDriverService = ChromeDriverService()
   @State private var chromePlayService: ChromePlayService?
   @State private var chromeProfileService: ChromeProfileService?
-  @State private var chromeProfileAccounts: [ProfileAccount] = []
+  @State private var chromeProfileAccounts: [Account] = []
 
   var body: some View {
     let content: some View =
@@ -145,7 +145,7 @@ struct ContentView: View {
       let masterToken = try await authService.fetchMasterToken(
         email: email, oauthToken: oauthToken)
 
-      let newAccount = PlayAccount(email: email, masterToken: masterToken)
+      let newAccount = Account(email: email, masterToken: masterToken)
       modelContext.insert(newAccount)
       try modelContext.save()
 
@@ -160,12 +160,12 @@ struct ContentView: View {
 
 #Preview("Empty Accounts") {
   ContentView()
-    .modelContainer(for: [PlayAccount.self, Note.self], inMemory: true)
+    .modelContainer(for: [Account.self, Note.self], inMemory: true)
 }
 
 #Preview("With Accounts") {
   let container = try! ModelContainer(
-    for: Schema([PlayAccount.self, Note.self]),
+    for: Schema([Account.self, Note.self]),
     configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]
   )
 
@@ -173,16 +173,15 @@ struct ContentView: View {
 
   return AccountListView(
     playServiceAccounts: [
-      PlayAccount(
+      Account(
         email: "boy@gmail.com",
         picture: "https://cdn-icons-png.flaticon.com/128/16683/16683419.png"
       )
     ],
     chromeProfileAccounts: [
-      ProfileAccount(
+      Account(
         email: "girl@gmail.com",
-        picture: "https://cdn-icons-png.flaticon.com/128/16683/16683451.png",
-        profileName: "Profile 1"
+        picture: "https://cdn-icons-png.flaticon.com/128/16683/16683451.png"
       )
     ],
     contentViewModel: viewModel

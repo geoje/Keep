@@ -29,19 +29,19 @@ class ContentViewModel: ObservableObject {
   }
 
   func selectPlayAccount(
-    _ account: PlayAccount, modelContext: ModelContext, completion: @escaping () -> Void = {}
+    _ account: Account, modelContext: ModelContext, completion: @escaping () -> Void = {}
   ) {
     profileAccountViewModel.clearSelection()
     playAccountViewModel.selectAccount(account, modelContext: modelContext, completion: completion)
   }
 
-  func selectProfileAccount(_ account: ProfileAccount) {
+  func selectProfileAccount(_ account: Account) {
     playAccountViewModel.clearSelection()
     profileAccountViewModel.selectAccount(account)
   }
 
   func deleteSelectedAccount(
-    modelContext: ModelContext, onDeleteProfile: @escaping (ProfileAccount) -> Void
+    modelContext: ModelContext, onDeleteProfile: @escaping (Account) -> Void
   ) {
     if playAccountViewModel.selectedAccount != nil {
       playAccountViewModel.deleteAccount(modelContext: modelContext)

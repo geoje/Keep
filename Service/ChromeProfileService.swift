@@ -6,7 +6,7 @@ class ChromeProfileService: ObservableObject {
   private let chromeDriverService: ChromeDriverService
   private var monitorTask: Task<Void, Never>?
   private var initialEmails: Set<String> = []
-  var onAddSuccess: (([ProfileAccount]) -> Void)?
+  var onAddSuccess: (([Account]) -> Void)?
 
   init(chromeDriverService: ChromeDriverService) {
     self.chromeDriverService = chromeDriverService
@@ -34,7 +34,7 @@ class ChromeProfileService: ObservableObject {
     monitorTask = nil
   }
 
-  func loadChromeProfiles() -> [ProfileAccount] {
+  func loadChromeProfiles() -> [Account] {
     guard let profileDir = chromeDriverService.getChromeProfileDirectory() else {
       return []
     }
@@ -56,9 +56,7 @@ class ChromeProfileService: ObservableObject {
         return nil
       }
 
-      let profileName = "Default"
-
-      return ProfileAccount(email: email, picture: picture, profileName: profileName)
+      return Account(email: email, picture: picture)
     }
   }
 

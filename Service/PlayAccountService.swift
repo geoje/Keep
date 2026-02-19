@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 class PlayAccountService {
-  func getAccessToken(for account: PlayAccount) async throws -> String {
+  func getAccessToken(for account: Account) async throws -> String {
     if !account.isAccessTokenExpired() && !account.accessToken.isEmpty {
       return account.accessToken
     } else {
