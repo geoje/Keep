@@ -14,7 +14,7 @@ class ChromeProfileService: ObservableObject {
 
   func startAdd() async throws {
     try await chromeDriverService.launchChrome(
-      url: "https://accounts.google.com/AddSession?authuser=0")
+      url: "https://accounts.google.com/AddSession")
 
     guard let profileDir = chromeDriverService.getChromeDataDir()?.appendingPathComponent("Default")
     else {

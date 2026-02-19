@@ -4,25 +4,26 @@ import SwiftUI
 
 struct ContentView: View {
   @Environment(\.modelContext) private var modelContext
-  @Query(sort: \Account.email, order: .forward) private var accounts: [Account]
+  @Query private var playAccounts: [Account]
 
   @State private var showingAddAccountOptions = false
   @State private var showingErrorAlert = false
   @State private var errorMessage = ""
-  @StateObject private var viewModel = ContentViewModel()
-  @StateObject private var chromeDriverService = ChromeDriverService()
   @State private var chromePlayService: ChromePlayService?
   @State private var chromeProfileService: ChromeProfileService?
-  @State private var chromeProfileAccounts: [Account] = []
+  @State private var profileAccounts: [Account] = []
+
+  @StateObject private var viewModel = ContentViewModel()
+  @StateObject private var chromeDriverService = ChromeDriverService()
 
   var body: some View {
     let content: some View =
-      if accounts.isEmpty {
+      if playAccounts.isEmpty {
         AnyView(EmptyAccountsView())
       } else {
         AnyView(
           AccountListView(
-            playServiceAccounts: accounts, chromeProfileAccounts: chromeProfileAccounts,
+            playServiceAccounts: playAccounts, chromeProfileAccounts: profileAccounts,
             contentViewModel: viewModel))
       }
     return
@@ -32,7 +33,7 @@ struct ContentView: View {
         Button("Cancel", role: .cancel) {}
         Button("Delete", role: .destructive) {
           viewModel.deleteSelectedAccount(modelContext: modelContext) { profileAccount in
-            chromeProfileAccounts.removeAll { $0.email == profileAccount.email }
+            profileAccounts.removeAll { $0.email == profileAccount.email }
           }
         }
       } message: {
@@ -105,12 +106,12 @@ struct ContentView: View {
           chromeProfileService?.onAddSuccess = { profiles in
             Task {
               await MainActor.run {
-                chromeProfileAccounts = profiles
+                profileAccounts = profiles
               }
             }
           }
         }
-        chromeProfileAccounts = chromeProfileService?.loadChromeProfiles() ?? []
+        profileAccounts = chromeProfileService?.loadChromeProfiles() ?? []
       }
       .onOpenURL { url in
         if url.scheme == "https" {
@@ -122,7 +123,8 @@ struct ContentView: View {
                 let note = try modelContext.fetch(
                   FetchDescriptor<Note>(predicate: #Predicate { $0.serverId == serverIdString })
                 ).first
-                if let note = note, let account = accounts.first(where: { $0.email == note.email })
+                if let note = note,
+                  let account = playAccounts.first(where: { $0.email == note.email })
                 {
                   viewModel.selectPlayAccount(
                     account, modelContext: modelContext
