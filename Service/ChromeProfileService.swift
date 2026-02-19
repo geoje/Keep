@@ -16,15 +16,12 @@ class ChromeProfileService: ObservableObject {
     try await chromeDriverService.launchChrome(
       url: "https://accounts.google.com/AddSession?authuser=0")
 
-    guard let profileDir = chromeDriverService.getChromeProfileDirectory() else {
+    guard let profileDir = chromeDriverService.getChromeDataDir()?.appendingPathComponent("Default")
+    else {
       throw ChromeProfileError.profileDirectoryNotFound
     }
 
     initialEmails = getAccountEmails(from: profileDir)
-
-    chromeDriverService.registerCleanupCallback { [weak self] in
-      self?.stopMonitoring()
-    }
 
     startMonitoring(profileDir: profileDir)
   }
@@ -35,7 +32,8 @@ class ChromeProfileService: ObservableObject {
   }
 
   func loadChromeProfiles() -> [Account] {
-    guard let profileDir = chromeDriverService.getChromeProfileDirectory() else {
+    guard let profileDir = chromeDriverService.getChromeDataDir()?.appendingPathComponent("Default")
+    else {
       return []
     }
 

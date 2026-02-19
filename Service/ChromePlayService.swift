@@ -13,9 +13,6 @@ class ChromePlayService: ObservableObject {
 
   func startLogin() async throws {
     try await chromeDriverService.launchChrome(url: "https://accounts.google.com/EmbeddedSetup")
-    chromeDriverService.registerCleanupCallback { [weak self] in
-      self?.stopMonitoring()
-    }
     startMonitoring()
   }
 

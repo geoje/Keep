@@ -30,16 +30,6 @@ class ProfileAccountViewModel: ObservableObject {
   func deleteAccount(modelContext: ModelContext, onDelete: @escaping (Account) -> Void) {
     guard let account = selectedAccount else { return }
 
-    // Delete associated notes
-    let existingNotes = try? modelContext.fetch(FetchDescriptor<Note>()).filter {
-      $0.email == account.email
-    }
-    if let notes = existingNotes {
-      for note in notes {
-        modelContext.delete(note)
-      }
-    }
-
     // TODO: Delete Chrome profile folder
     // Remove from memory list
     onDelete(account)

@@ -3,18 +3,12 @@ import Foundation
 
 @MainActor
 class ChromeDriverService: ObservableObject {
-  @Published var isRunning = false
-
-  private var chromedriverProcess: Process?
-  private var chromeSessionId: String?
-  private var cleanupCallbacks: [() -> Void] = []
-
   private let driverPort = 9515
-  private let debuggingPort = 9222
+  private var chromedriverProcess: Process?
+  private var sessionId: String?
+  private var cachedChromeVersion: String?
 
-  func launchChrome(url: String, headless: Bool = false, keepExistingSessions: Bool = false)
-    async throws
-  {
+  func launchChrome(url: String, headless: Bool = false) async throws {
     guard let chromedriverPath = Bundle.main.path(forResource: "chromedriver", ofType: nil)
     else {
       throw ChromeDriverError.chromedriverNotFound
@@ -30,6 +24,35 @@ class ChromeDriverService: ObservableObject {
       throw ChromeDriverError.chromeNotFound
     }
 
+    try await startChromeDriver(chromedriverPath: chromedriverPath)
+    await deleteAllSessions()
+
+    let sessionId = try await createChromeSession(chromePath: chromePath, headless: headless)
+    self.sessionId = sessionId
+
+    try await navigateToURL(sessionId: sessionId, url: url)
+  }
+
+  func getSessionId() -> String? {
+    return sessionId
+  }
+
+  func getChromeDataDir() -> URL? {
+    guard
+      let appSupportURL = FileManager.default.urls(
+        for: .applicationSupportDirectory, in: .userDomainMask
+      ).first,
+      let bundleIdentifier = Bundle.main.bundleIdentifier
+    else {
+      return nil
+    }
+    return
+      appSupportURL
+      .appendingPathComponent(bundleIdentifier)
+      .appendingPathComponent("Chrome")
+  }
+
+  private func startChromeDriver(chromedriverPath: String) async throws {
     if chromedriverProcess == nil || chromedriverProcess?.isRunning != true {
       if !(await checkPortInUse()) {
         let process = Process()
@@ -39,7 +62,7 @@ class ChromeDriverService: ObservableObject {
         try process.run()
         chromedriverProcess = process
 
-        for i in 0..<50 {
+        for _ in 0..<50 {
           if await checkPortInUse() {
             break
           }
@@ -47,59 +70,6 @@ class ChromeDriverService: ObservableObject {
         }
       }
     }
-
-    isRunning = true
-
-    if !keepExistingSessions {
-      await deleteAllSessions()
-    }
-
-    let sessionId = try await createChromeSession(chromePath: chromePath, headless: headless)
-    chromeSessionId = sessionId
-
-    try await navigateToURL(sessionId: sessionId, url: url)
-  }
-
-  func getSessionId() -> String? {
-    return chromeSessionId
-  }
-
-  func registerCleanupCallback(_ callback: @escaping () -> Void) {
-    cleanupCallbacks.append(callback)
-  }
-
-  func getChromeProfileDirectory() -> URL? {
-    guard
-      let appSupportURL = FileManager.default.urls(
-        for: .applicationSupportDirectory, in: .userDomainMask
-      ).first
-    else {
-      return nil
-    }
-    return
-      appSupportURL
-      .appendingPathComponent("Google/Chrome for Testing")
-      .appendingPathComponent("Default")
-  }
-
-  func getDebuggingURL() async -> String? {
-    let url = URL(string: "http://localhost:\(debuggingPort)/json/list")!
-
-    guard let (data, _) = try? await URLSession.shared.data(from: url) else {
-      return nil
-    }
-
-    guard let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-      return nil
-    }
-
-    guard let firstPage = json.first,
-      let webSocketDebuggerUrl = firstPage["webSocketDebuggerUrl"] as? String
-    else {
-      return nil
-    }
-
-    return webSocketDebuggerUrl
   }
 
   private func createChromeSession(chromePath: String, headless: Bool) async throws -> String {
@@ -118,13 +88,12 @@ class ChromeDriverService: ObservableObject {
 
     if headless {
       chromeArgs.append("--headless=new")
-      chromeArgs.append("--user-agent=Chrome/145.0.0.0")
+      if let version = getChromeVersion() {
+        chromeArgs.append("--user-agent=Chrome/\(version)")
+      }
     }
 
-    if let appSupportURL = FileManager.default.urls(
-      for: .applicationSupportDirectory, in: .userDomainMask
-    ).first {
-      let chromeDataDir = appSupportURL.appendingPathComponent("Google/Chrome for Testing")
+    if let chromeDataDir = getChromeDataDir() {
       try? FileManager.default.createDirectory(
         at: chromeDataDir,
         withIntermediateDirectories: true
@@ -158,6 +127,47 @@ class ChromeDriverService: ObservableObject {
     return sessionId
   }
 
+  private func getChromeVersion() -> String? {
+    if let cached = cachedChromeVersion {
+      return cached
+    }
+
+    guard
+      let chromePath = Bundle.main.path(
+        forResource: "Google Chrome for Testing",
+        ofType: nil,
+        inDirectory: "Google Chrome for Testing.app/Contents/MacOS"
+      )
+    else {
+      return nil
+    }
+
+    let chromeAppPath =
+      ((chromePath as NSString).deletingLastPathComponent as NSString)
+      .deletingLastPathComponent as NSString
+    let chromeAppBundlePath = chromeAppPath.deletingLastPathComponent
+    let infoPlistPath = (chromeAppBundlePath as NSString).appendingPathComponent(
+      "Contents/Info.plist")
+
+    guard let plistData = try? Data(contentsOf: URL(fileURLWithPath: infoPlistPath)),
+      let plist = try? PropertyListSerialization.propertyList(
+        from: plistData, options: [], format: nil) as? [String: Any],
+      let version = plist["CFBundleShortVersionString"] as? String
+    else {
+      return nil
+    }
+
+    // 145.0.7632.67 -> 145.0.0.0
+    let components = version.split(separator: ".")
+    if components.count >= 1 {
+      let result = "\(components[0]).0.0.0"
+      cachedChromeVersion = result
+      return result
+    }
+
+    return nil
+  }
+
   private func navigateToURL(sessionId: String, url: String) async throws {
     let navURL = URL(string: "http://localhost:\(driverPort)/session/\(sessionId)/url")!
     var request = URLRequest(url: navURL)
@@ -167,6 +177,17 @@ class ChromeDriverService: ObservableObject {
     let body: [String: Any] = ["url": url]
     request.httpBody = try JSONSerialization.data(withJSONObject: body)
     _ = try await URLSession.shared.data(for: request)
+  }
+
+  private func checkPortInUse() async -> Bool {
+    let statusURL = URL(string: "http://localhost:\(driverPort)/status")!
+    if let (_, response) = try? await URLSession.shared.data(from: statusURL),
+      let httpResponse = response as? HTTPURLResponse,
+      httpResponse.statusCode == 200
+    {
+      return true
+    }
+    return false
   }
 
   private func getAllSessions() async -> [String] {
@@ -185,8 +206,6 @@ class ChromeDriverService: ObservableObject {
   }
 
   private func deleteAllSessions() async {
-    cleanupCallbacks.forEach { $0() }
-
     let sessions = await getAllSessions()
     for sessionId in sessions {
       let url = URL(string: "http://localhost:\(driverPort)/session/\(sessionId)")!
@@ -194,25 +213,13 @@ class ChromeDriverService: ObservableObject {
       request.httpMethod = "DELETE"
       _ = try? await URLSession.shared.data(for: request)
     }
-    chromeSessionId = nil
-  }
-
-  private func checkPortInUse() async -> Bool {
-    let statusURL = URL(string: "http://localhost:\(driverPort)/status")!
-    if let (_, response) = try? await URLSession.shared.data(from: statusURL),
-      let httpResponse = response as? HTTPURLResponse,
-      httpResponse.statusCode == 200
-    {
-      return true
-    }
-    return false
+    sessionId = nil
   }
 
   func cleanup() async {
     await deleteAllSessions()
     stopChromeDriver()
     killAllChromeProcesses()
-    isRunning = false
   }
 
   private func stopChromeDriver() {
