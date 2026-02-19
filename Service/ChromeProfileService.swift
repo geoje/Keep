@@ -1,55 +1,32 @@
 import Combine
 import Foundation
 
-struct ProfileAccountInfo {
-  let email: String
-  let pictureUrl: String
-}
-
 @MainActor
 class ChromeProfileService: ObservableObject {
   private let chromeDriverService: ChromeDriverService
   private var monitorTask: Task<Void, Never>?
-  private var initialProfiles: Set<String> = []
-  var onAddSuccess: (() -> Void)?
+  private var initialEmails: Set<String> = []
+  var onAddSuccess: (([ProfileAccount]) -> Void)?
 
   init(chromeDriverService: ChromeDriverService) {
     self.chromeDriverService = chromeDriverService
   }
 
   func startAdd() async throws {
-    guard
-      let chromePath = Bundle.main.path(
-        forResource: "Google Chrome for Testing",
-        ofType: nil,
-        inDirectory: "Google Chrome for Testing.app/Contents/MacOS"
-      )
-    else {
-      throw ChromeProfileError.chromeNotFound
+    try await chromeDriverService.launchChrome(
+      url: "https://accounts.google.com/AddSession?authuser=0")
+
+    guard let profileDir = chromeDriverService.getChromeProfileDirectory() else {
+      throw ChromeProfileError.profileDirectoryNotFound
     }
 
-    guard let chromeDataDir = getChromeDataDirectory() else {
-      throw ChromeProfileError.dataDirectoryNotFound
+    initialEmails = getAccountEmails(from: profileDir)
+
+    chromeDriverService.registerCleanupCallback { [weak self] in
+      self?.stopMonitoring()
     }
 
-    // Create Chrome data directory if it doesn't exist
-    try? FileManager.default.createDirectory(
-      at: chromeDataDir,
-      withIntermediateDirectories: true
-    )
-
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-    process.arguments = [
-      "-a", chromePath,
-      "--args",
-      "--user-data-dir=\(chromeDataDir.path)",
-      "--profile-directory=Guest Profile",
-    ]
-
-    try process.run()
-
-    startMonitoring()
+    startMonitoring(profileDir: profileDir)
   }
 
   func stopMonitoring() {
@@ -57,149 +34,149 @@ class ChromeProfileService: ObservableObject {
     monitorTask = nil
   }
 
-  private func startMonitoring() {
-    monitorTask?.cancel()
+  func loadChromeProfiles() -> [ProfileAccount] {
+    guard let profileDir = chromeDriverService.getChromeProfileDirectory() else {
+      return []
+    }
 
+    let preferencesPath = profileDir.appendingPathComponent("Preferences")
+
+    guard let data = try? Data(contentsOf: preferencesPath),
+      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+      let accountInfo = json["account_info"] as? [[String: Any]]
+    else {
+      return []
+    }
+
+    return accountInfo.compactMap { account in
+      guard let email = account["email"] as? String,
+        let picture = account["picture_url"] as? String,
+        !picture.isEmpty
+      else {
+        return nil
+      }
+
+      let profileName = "Default"
+
+      return ProfileAccount(email: email, picture: picture, profileName: profileName)
+    }
+  }
+
+  private func startMonitoring(profileDir: URL) {
+    monitorTask?.cancel()
     monitorTask = Task { [weak self] in
       guard let self = self else { return }
 
-      // Capture initial profile state after Chrome has started
-      self.initialProfiles = self.getCurrentProfiles()
+      print("[ChromeProfileService] Monitoring started")
+      print("[ChromeProfileService] Initial accounts: \(self.initialEmails)")
 
       while !Task.isCancelled {
         try? await Task.sleep(for: .seconds(1))
 
-        let currentProfiles = self.getCurrentProfiles()
+        guard let sessionId = self.chromeDriverService.getSessionId() else {
+          print("[ChromeProfileService] Session ID lost")
+          self.stopMonitoring()
+          return
+        }
 
-        // Check if a new profile was added (profiles that exist now but didn't exist initially)
-        let newProfiles = currentProfiles.subtracting(self.initialProfiles)
-        if !newProfiles.isEmpty {
-          // Check all current profiles for NewTabPage
-          for profileName in currentProfiles {
-            if self.hasNewTabPage(profileName: profileName) {
-              // Profile with NewTabPage detected, cleanup
-              self.stopMonitoring()
-              await self.chromeDriverService.cleanup()
-              self.onAddSuccess?()
-              return
-            }
+        guard await self.checkSessionAlive(sessionId: sessionId) else {
+          print("[ChromeProfileService] Session closed, cleaning up...")
+          self.stopMonitoring()
+          await self.chromeDriverService.cleanup()
+          return
+        }
+
+        let currentEmails = self.getAccountEmails(from: profileDir)
+        let newEmails = currentEmails.subtracting(self.initialEmails)
+
+        print("[ChromeProfileService] Current accounts: \(currentEmails)")
+        print("[ChromeProfileService] New accounts detected: \(newEmails)")
+
+        if !newEmails.isEmpty {
+          let newAccountsWithPicture = self.getAccountsWithPicture(
+            from: profileDir, emails: newEmails)
+
+          if !newAccountsWithPicture.isEmpty {
+            print("[ChromeProfileService] New account with picture found! Stopping monitoring...")
+            self.stopMonitoring()
+            await self.chromeDriverService.cleanup()
+            let profiles = self.loadChromeProfiles()
+            print("[ChromeProfileService] Loaded profiles: \(profiles.map { $0.email })")
+            self.onAddSuccess?(profiles)
+            return
+          } else {
+            print("[ChromeProfileService] New account found but waiting for profile picture...")
           }
         }
       }
     }
   }
 
-  func getCurrentProfiles() -> Set<String> {
-    guard let chromeDataDir = getChromeDataDirectory() else {
-      return []
-    }
-
-    let fileManager = FileManager.default
-    guard
-      let contents = try? fileManager.contentsOfDirectory(
-        at: chromeDataDir,
-        includingPropertiesForKeys: [.isDirectoryKey, .creationDateKey],
-        options: [.skipsHiddenFiles]
-      )
-    else {
-      return []
-    }
-
-    var profiles: Set<String> = []
-    for url in contents {
-      let resourceValues = try? url.resourceValues(forKeys: [.isDirectoryKey])
-      if resourceValues?.isDirectory == true {
-        let name = url.lastPathComponent
-        // Match Default, Profile 1, Profile 2, etc. (exclude Guest Profile)
-        if name == "Default" || name.starts(with: "Profile ") {
-          // Check if profile has Preferences file (indicates it's fully created)
-          let preferencesPath = url.appendingPathComponent("Preferences")
-          if fileManager.fileExists(atPath: preferencesPath.path) {
-            profiles.insert(name)
-          }
-        }
-      }
-    }
-
-    return profiles
-  }
-
-  func parseProfileAccountInfo(profileName: String) -> ProfileAccountInfo? {
-    guard let chromeDataDir = getChromeDataDirectory() else {
-      return nil
-    }
-
-    let preferencesPath =
-      chromeDataDir
-      .appendingPathComponent(profileName)
-      .appendingPathComponent("Preferences")
+  private func getAccountsWithPicture(from profileDir: URL, emails: Set<String>) -> Set<String> {
+    let preferencesPath = profileDir.appendingPathComponent("Preferences")
 
     guard let data = try? Data(contentsOf: preferencesPath),
       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-      let accountInfoArray = json["account_info"] as? [[String: Any]],
-      let firstAccount = accountInfoArray.first,
-      let email = firstAccount["email"] as? String,
-      let pictureUrl = firstAccount["picture_url"] as? String,
-      !email.isEmpty,
-      !pictureUrl.isEmpty
+      let accountInfo = json["account_info"] as? [[String: Any]]
     else {
-      return nil
+      return []
     }
 
-    return ProfileAccountInfo(email: email, pictureUrl: pictureUrl)
+    let emailsWithPicture = accountInfo.compactMap { account -> String? in
+      guard let email = account["email"] as? String,
+        emails.contains(email),
+        let pictureURL = account["picture_url"] as? String,
+        !pictureURL.isEmpty
+      else {
+        return nil
+      }
+      return email
+    }
+
+    return Set(emailsWithPicture)
   }
 
-  private func hasNewTabPage(profileName: String) -> Bool {
-    guard let chromeDataDir = getChromeDataDirectory() else {
+  private func checkSessionAlive(sessionId: String) async -> Bool {
+    let url = URL(string: "http://localhost:9515/session/\(sessionId)/title")!
+    var request = URLRequest(url: url)
+    request.httpMethod = "GET"
+
+    do {
+      let (_, response) = try await URLSession.shared.data(for: request)
+      guard let httpResponse = response as? HTTPURLResponse,
+        httpResponse.statusCode == 200
+      else { return false }
+      return true
+    } catch {
       return false
     }
+  }
 
-    let preferencesPath =
-      chromeDataDir
-      .appendingPathComponent(profileName)
-      .appendingPathComponent("Preferences")
+  private func getAccountEmails(from profileDir: URL) -> Set<String> {
+    let preferencesPath = profileDir.appendingPathComponent("Preferences")
 
     guard let data = try? Data(contentsOf: preferencesPath),
-      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+      let accountInfo = json["account_info"] as? [[String: Any]]
     else {
-      return false
+      return []
     }
 
-    return json["NewTabPage"] != nil
-  }
-
-  private func getChromeDataDirectory() -> URL? {
-    guard let bundleIdentifier = Bundle.main.bundleIdentifier else {
-      return nil
+    let emails = accountInfo.compactMap { account in
+      account["email"] as? String
     }
 
-    let fileManager = FileManager.default
-    guard
-      let appSupport = fileManager.urls(
-        for: .applicationSupportDirectory,
-        in: .userDomainMask
-      ).first
-    else {
-      return nil
-    }
-
-    return
-      appSupport
-      .appendingPathComponent(bundleIdentifier)
-      .appendingPathComponent("Chrome")
+    return Set(emails)
   }
 }
 
 enum ChromeProfileError: LocalizedError {
-  case chromeNotFound
-  case dataDirectoryNotFound
+  case profileDirectoryNotFound
 
   var errorDescription: String? {
     switch self {
-    case .chromeNotFound:
-      return "Chrome for Testing not found"
-    case .dataDirectoryNotFound:
-      return "Could not create Chrome data directory"
+    case .profileDirectoryNotFound:
+      return "Chrome profile directory not found"
     }
   }
 }

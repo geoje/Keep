@@ -10,8 +10,11 @@ class ChromeDriverService: ObservableObject {
   private var cleanupCallbacks: [() -> Void] = []
 
   private let driverPort = 9515
+  private let debuggingPort = 9222
 
-  func launchChrome(url: String) async throws {
+  func launchChrome(url: String, headless: Bool = false, keepExistingSessions: Bool = false)
+    async throws
+  {
     guard let chromedriverPath = Bundle.main.path(forResource: "chromedriver", ofType: nil)
     else {
       throw ChromeDriverError.chromedriverNotFound
@@ -36,7 +39,7 @@ class ChromeDriverService: ObservableObject {
         try process.run()
         chromedriverProcess = process
 
-        for _ in 0..<50 {
+        for i in 0..<50 {
           if await checkPortInUse() {
             break
           }
@@ -47,9 +50,11 @@ class ChromeDriverService: ObservableObject {
 
     isRunning = true
 
-    await deleteAllSessions()
+    if !keepExistingSessions {
+      await deleteAllSessions()
+    }
 
-    let sessionId = try await createChromeSession(chromePath: chromePath)
+    let sessionId = try await createChromeSession(chromePath: chromePath, headless: headless)
     chromeSessionId = sessionId
 
     try await navigateToURL(sessionId: sessionId, url: url)
@@ -63,7 +68,41 @@ class ChromeDriverService: ObservableObject {
     cleanupCallbacks.append(callback)
   }
 
-  private func createChromeSession(chromePath: String) async throws -> String {
+  func getChromeProfileDirectory() -> URL? {
+    guard
+      let appSupportURL = FileManager.default.urls(
+        for: .applicationSupportDirectory, in: .userDomainMask
+      ).first
+    else {
+      return nil
+    }
+    return
+      appSupportURL
+      .appendingPathComponent("Google/Chrome for Testing")
+      .appendingPathComponent("Default")
+  }
+
+  func getDebuggingURL() async -> String? {
+    let url = URL(string: "http://localhost:\(debuggingPort)/json/list")!
+
+    guard let (data, _) = try? await URLSession.shared.data(from: url) else {
+      return nil
+    }
+
+    guard let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+      return nil
+    }
+
+    guard let firstPage = json.first,
+      let webSocketDebuggerUrl = firstPage["webSocketDebuggerUrl"] as? String
+    else {
+      return nil
+    }
+
+    return webSocketDebuggerUrl
+  }
+
+  private func createChromeSession(chromePath: String, headless: Bool) async throws -> String {
     let url = URL(string: "http://localhost:\(driverPort)/session")!
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
@@ -76,6 +115,11 @@ class ChromeDriverService: ObservableObject {
       "--no-first-run",
       "--test-type",
     ]
+
+    if headless {
+      chromeArgs.append("--headless=new")
+      chromeArgs.append("--user-agent=Chrome/145.0.0.0")
+    }
 
     if let appSupportURL = FileManager.default.urls(
       for: .applicationSupportDirectory, in: .userDomainMask

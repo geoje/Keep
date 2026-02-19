@@ -80,15 +80,6 @@ struct ContentView: View {
         Button("Add Chrome Profile") {
           Task {
             do {
-              if chromeProfileService == nil {
-                chromeProfileService = ChromeProfileService(
-                  chromeDriverService: chromeDriverService)
-                chromeProfileService?.onAddSuccess = {
-                  Task {
-                    loadChromeProfiles()
-                  }
-                }
-              }
               try await chromeProfileService?.startAdd()
             } catch {
               errorMessage = error.localizedDescription
@@ -108,7 +99,18 @@ struct ContentView: View {
         Text(errorMessage)
       }
       .onAppear {
-        loadChromeProfiles()
+        if chromeProfileService == nil {
+          chromeProfileService = ChromeProfileService(
+            chromeDriverService: chromeDriverService)
+          chromeProfileService?.onAddSuccess = { profiles in
+            Task {
+              await MainActor.run {
+                chromeProfileAccounts = profiles
+              }
+            }
+          }
+        }
+        chromeProfileAccounts = chromeProfileService?.loadChromeProfiles() ?? []
       }
       .onOpenURL { url in
         if url.scheme == "https" {
@@ -154,26 +156,6 @@ struct ContentView: View {
     }
   }
 
-  private func loadChromeProfiles() {
-    if chromeProfileService == nil {
-      chromeProfileService = ChromeProfileService(chromeDriverService: chromeDriverService)
-    }
-
-    guard let service = chromeProfileService else { return }
-
-    let profileNames = service.getCurrentProfiles()
-    var loadedAccounts: [ProfileAccount] = []
-
-    for profileName in profileNames {
-      if let accountInfo = service.parseProfileAccountInfo(profileName: profileName) {
-        let account = ProfileAccount(
-          email: accountInfo.email, picture: accountInfo.pictureUrl, profileName: profileName)
-        loadedAccounts.append(account)
-      }
-    }
-
-    chromeProfileAccounts = loadedAccounts
-  }
 }
 
 #Preview("Empty Accounts") {
