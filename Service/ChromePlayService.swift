@@ -16,11 +16,6 @@ class ChromePlayService: ObservableObject {
     startMonitoring()
   }
 
-  func stopMonitoring() {
-    monitorTask?.cancel()
-    monitorTask = nil
-  }
-
   private func startMonitoring() {
     monitorTask?.cancel()
     monitorTask = Task { [weak self] in
@@ -58,6 +53,11 @@ class ChromePlayService: ObservableObject {
         }
       }
     }
+  }
+
+  private func stopMonitoring() {
+    monitorTask?.cancel()
+    monitorTask = nil
   }
 
   private func getCookies(sessionId: String) async -> [[String: Any]]? {

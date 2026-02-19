@@ -14,13 +14,7 @@ class ChromeDriverService: ObservableObject {
       throw ChromeDriverError.chromedriverNotFound
     }
 
-    guard
-      let chromePath = Bundle.main.path(
-        forResource: "Google Chrome for Testing",
-        ofType: nil,
-        inDirectory: "Google Chrome for Testing.app/Contents/MacOS"
-      )
-    else {
+    guard let chromePath = getChromePath() else {
       throw ChromeDriverError.chromeNotFound
     }
 
@@ -37,6 +31,14 @@ class ChromeDriverService: ObservableObject {
     return sessionId
   }
 
+  func getChromePath() -> String? {
+    return Bundle.main.path(
+      forResource: "Google Chrome for Testing",
+      ofType: nil,
+      inDirectory: "Google Chrome for Testing.app/Contents/MacOS"
+    )
+  }
+
   func getChromeDataDir() -> URL? {
     guard
       let appSupportURL = FileManager.default.urls(
@@ -46,10 +48,19 @@ class ChromeDriverService: ObservableObject {
     else {
       return nil
     }
-    return
+
+    let chromeDataDir =
       appSupportURL
       .appendingPathComponent(bundleIdentifier)
       .appendingPathComponent("Chrome")
+
+    // Create directory if it doesn't exist
+    try? FileManager.default.createDirectory(
+      at: chromeDataDir,
+      withIntermediateDirectories: true
+    )
+
+    return chromeDataDir
   }
 
   private func startChromeDriver(chromedriverPath: String) async throws {
@@ -78,30 +89,7 @@ class ChromeDriverService: ObservableObject {
     request.httpMethod = "POST"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-    var chromeArgs = [
-      "--disable-blink-features=AutomationControlled",
-      "--no-default-browser-check",
-      "--disable-infobars",
-      "--no-first-run",
-      "--test-type",
-    ]
-
-    if headless {
-      chromeArgs.append("--headless=new")
-      if let version = getChromeVersion() {
-        chromeArgs.append("--user-agent=Chrome/\(version)")
-      }
-    }
-
-    if let chromeDataDir = getChromeDataDir() {
-      try? FileManager.default.createDirectory(
-        at: chromeDataDir,
-        withIntermediateDirectories: true
-      )
-      chromeArgs.append("--user-data-dir=\(chromeDataDir.path)")
-      chromeArgs.append("--profile-directory=Default")
-    }
-
+    let chromeArgs = buildChromeArgs(headless: headless)
     let body: [String: Any] = [
       "capabilities": [
         "alwaysMatch": [
@@ -127,18 +115,36 @@ class ChromeDriverService: ObservableObject {
     return sessionId
   }
 
+  func buildChromeArgs(headless: Bool, profileDirectory: String = "Default") -> [String] {
+    var chromeArgs = [
+      "--disable-blink-features=AutomationControlled",
+      "--no-default-browser-check",
+      "--disable-infobars",
+      "--no-first-run",
+      "--test-type",
+    ]
+
+    if headless {
+      chromeArgs.append("--headless=new")
+      if let version = getChromeVersion() {
+        chromeArgs.append("--user-agent=Chrome/\(version)")
+      }
+    }
+
+    if let chromeDataDir = getChromeDataDir() {
+      chromeArgs.append("--user-data-dir=\(chromeDataDir.path)")
+      chromeArgs.append("--profile-directory=\(profileDirectory)")
+    }
+
+    return chromeArgs
+  }
+
   private func getChromeVersion() -> String? {
     if let cached = cachedChromeVersion {
       return cached
     }
 
-    guard
-      let chromePath = Bundle.main.path(
-        forResource: "Google Chrome for Testing",
-        ofType: nil,
-        inDirectory: "Google Chrome for Testing.app/Contents/MacOS"
-      )
-    else {
+    guard let chromePath = getChromePath() else {
       return nil
     }
 
@@ -239,7 +245,7 @@ class ChromeDriverService: ObservableObject {
     process.waitUntilExit()
   }
 
-  private func killAllChromeProcesses() {
+  func killAllChromeProcesses() {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
     process.arguments = ["-9", "Google Chrome for Testing"]
