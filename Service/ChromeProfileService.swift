@@ -25,7 +25,6 @@ class ChromeProfileService: ObservableObject {
         headless: false, profileDirectory: "Guest Profile")
 
     try process.run()
-
     startMonitoring()
   }
 
@@ -45,20 +44,26 @@ class ChromeProfileService: ObservableObject {
       guard let self = self else { return }
 
       self.initialProfiles = self.getCurrentProfiles()
+      guard let chromeDataDir = self.chromeDriverService.getChromeDataDir() else { return }
 
       while !Task.isCancelled {
         try? await Task.sleep(for: .seconds(1))
 
-        let currentProfiles = self.getCurrentProfiles()
-        let newProfiles = currentProfiles.subtracting(self.initialProfiles)
-        if !newProfiles.isEmpty {
-          for profileName in currentProfiles {
-            if self.hasNewTabPage(profileName: profileName) {
-              self.stopMonitoring()
-              self.onAddSuccess?(self.loadChromeProfiles())
-              self.chromeDriverService.killAllChromeProcesses()
-              return
-            }
+        guard self.isChromeGuestProfileRunning() else {
+          self.stopMonitoring()
+          self.chromeDriverService.killAllChromeProcesses()
+          return
+        }
+
+        let newProfiles = self.getCurrentProfiles().subtracting(self.initialProfiles)
+        for profileName in newProfiles where self.hasNewTabPage(profileName: profileName) {
+          if let account = self.parseProfileAccount(
+            chromeDataDir: chromeDataDir, profileName: profileName)
+          {
+            self.stopMonitoring()
+            self.onAddSuccess?(self.loadChromeProfiles())
+            self.chromeDriverService.killAllChromeProcesses()
+            return
           }
         }
       }
@@ -71,13 +76,8 @@ class ChromeProfileService: ObservableObject {
   }
 
   private func getCurrentProfiles() -> Set<String> {
-    guard let chromeDataDir = chromeDriverService.getChromeDataDir() else {
-      return []
-    }
-
-    let fileManager = FileManager.default
-    guard
-      let contents = try? fileManager.contentsOfDirectory(
+    guard let chromeDataDir = chromeDriverService.getChromeDataDir(),
+      let contents = try? FileManager.default.contentsOfDirectory(
         at: chromeDataDir,
         includingPropertiesForKeys: [.isDirectoryKey],
         options: [.skipsHiddenFiles]
@@ -86,23 +86,20 @@ class ChromeProfileService: ObservableObject {
       return []
     }
 
-    var profiles: Set<String> = []
-    for url in contents {
-      let resourceValues = try? url.resourceValues(forKeys: [.isDirectoryKey])
-      if resourceValues?.isDirectory == true {
-        let name = url.lastPathComponent
-        // Match Default, Profile 1, Profile 2, etc. (exclude Guest Profile)
-        if name == "Default" || name.starts(with: "Profile ") {
-          // Check if profile has Preferences file (indicates it's fully created)
-          let preferencesPath = url.appendingPathComponent("Preferences")
-          if fileManager.fileExists(atPath: preferencesPath.path) {
-            profiles.insert(name)
-          }
+    return Set(
+      contents.compactMap { url in
+        guard (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true else {
+          return nil
         }
-      }
-    }
-
-    return profiles
+        let name = url.lastPathComponent
+        guard name == "Default" || name.starts(with: "Profile "),
+          FileManager.default.fileExists(
+            atPath: url.appendingPathComponent("Preferences").path)
+        else {
+          return nil
+        }
+        return name
+      })
   }
 
   private func parseProfileAccount(chromeDataDir: URL, profileName: String) -> Account? {
@@ -127,22 +124,32 @@ class ChromeProfileService: ObservableObject {
   }
 
   private func hasNewTabPage(profileName: String) -> Bool {
-    guard let chromeDataDir = chromeDriverService.getChromeDataDir() else {
-      return false
-    }
-
-    let preferencesPath =
-      chromeDataDir
-      .appendingPathComponent(profileName)
-      .appendingPathComponent("Preferences")
-
-    guard let data = try? Data(contentsOf: preferencesPath),
+    guard let chromeDataDir = chromeDriverService.getChromeDataDir(),
+      let data = try? Data(
+        contentsOf: chromeDataDir.appendingPathComponent(profileName).appendingPathComponent(
+          "Preferences")),
       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
     else {
       return false
     }
-
     return json["NewTabPage"] != nil
+  }
+
+  nonisolated private func isChromeGuestProfileRunning() -> Bool {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
+    process.arguments = ["-f", "Guest Profile"]
+    process.standardOutput = Pipe()
+
+    guard (try? process.run()) != nil else { return false }
+    process.waitUntilExit()
+
+    guard let data = (process.standardOutput as? Pipe)?.fileHandleForReading.readDataToEndOfFile(),
+      let output = String(data: data, encoding: .utf8)
+    else {
+      return false
+    }
+    return !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
   }
 }
 
