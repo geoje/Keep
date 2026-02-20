@@ -17,6 +17,7 @@ class ContentViewModel: ObservableObject {
 
   private var noteService: NoteService
   private var peopleService: GooglePeopleService
+  var chromeProfileService: ChromeProfileService?
 
   init() {
     self.noteService = NoteService()
@@ -59,25 +60,23 @@ class ContentViewModel: ObservableObject {
   func deleteSelectedAccount(modelContext: ModelContext) {
     guard let account = selectedAccount else { return }
 
-    if !account.masterToken.isEmpty && !account.profileName.isEmpty {
-      account.masterToken = ""
-      try? modelContext.save()
-      return
+    if !account.profileName.isEmpty {
+      if let chromeProfileService = chromeProfileService {
+        try? chromeProfileService.deleteProfile(profileName: account.profileName)
+      }
     }
 
-    if !account.masterToken.isEmpty {
-      let existingNotes = try? modelContext.fetch(FetchDescriptor<Note>()).filter {
-        $0.email == account.email
-      }
-      if let notes = existingNotes {
-        for note in notes {
-          modelContext.delete(note)
-        }
-      }
-
-      modelContext.delete(account)
-      selectedAccount = nil
-      try? modelContext.save()
+    let existingNotes = try? modelContext.fetch(FetchDescriptor<Note>()).filter {
+      $0.email == account.email
     }
+    if let notes = existingNotes {
+      for note in notes {
+        modelContext.delete(note)
+      }
+    }
+
+    modelContext.delete(account)
+    selectedAccount = nil
+    try? modelContext.save()
   }
 }

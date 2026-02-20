@@ -29,35 +29,12 @@ struct ContentView: View {
       content
       .frame(minWidth: 360, maxWidth: 360, minHeight: 240)
       .alert("🗑️ Delete Account", isPresented: $viewModel.showDeleteConfirm) {
-        if let account = viewModel.selectedAccount {
-          if !account.masterToken.isEmpty && !account.profileName.isEmpty {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete Play Service", role: .destructive) {
-              viewModel.deleteSelectedAccount(modelContext: modelContext)
-            }
-          } else if !account.masterToken.isEmpty {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
-              viewModel.deleteSelectedAccount(modelContext: modelContext)
-            }
-          } else if !account.profileName.isEmpty {
-            Button("OK", role: .cancel) {}
-          }
+        Button("Cancel", role: .cancel) {}
+        Button("Delete", role: .destructive) {
+          viewModel.deleteSelectedAccount(modelContext: modelContext)
         }
       } message: {
-        if let account = viewModel.selectedAccount {
-          if !account.masterToken.isEmpty && !account.profileName.isEmpty {
-            Text(
-              "Only removing Play Service login. Profile can be removed from Chrome profile manager (Add > Add Chrome Profile)."
-            )
-          } else if !account.masterToken.isEmpty {
-            Text("Are you sure you want to delete this account?")
-          } else if !account.profileName.isEmpty {
-            Text(
-              "Profile can be removed from Chrome profile manager. Go to Add > Add Chrome Profile to manage profiles."
-            )
-          }
-        }
+        Text("Are you sure you want to delete this account?")
       }
       .toolbar {
         if viewModel.hasSelectedAccount {
@@ -84,7 +61,7 @@ struct ContentView: View {
             await handleAddPlayAccount()
           }
         }
-        Button("👤 Add Chrome Profile") {
+        Button("👤 Add Chrome Profiles") {
           Task {
             await handleAddProfileAccount()
           }
@@ -92,7 +69,7 @@ struct ContentView: View {
         Button("Cancel", role: .cancel) {}
       } message: {
         Text(
-          "Try Login Play Service first. Use Add Chrome Profile if you have an Enterprise account or encounter issues."
+          "Try Login Play Service first. Use Add Chrome Profiles if you have an Enterprise account or encounter issues."
         )
       }
       .alert("⚠️ Error", isPresented: $showingErrorAlert) {
@@ -107,11 +84,12 @@ struct ContentView: View {
         if chromeProfileService == nil {
           chromeProfileService = ChromeProfileService(
             chromeDriverService: chromeDriverService)
-          chromeProfileService?.onAddSuccess = { profile in
+          chromeProfileService?.onAddProfile = { profile in
             Task {
-              await handleProfileAddSuccess(profile: profile)
+              await handleProfileAdded(profile: profile)
             }
           }
+          viewModel.chromeProfileService = chromeProfileService
           Task {
             await syncChromeProfiles()
           }
@@ -224,9 +202,9 @@ struct ContentView: View {
       if chromeProfileService == nil {
         chromeProfileService = ChromeProfileService(
           chromeDriverService: chromeDriverService)
-        chromeProfileService?.onAddSuccess = { profile in
+        chromeProfileService?.onAddProfile = { profile in
           Task {
-            await handleProfileAddSuccess(profile: profile)
+            await handleProfileAdded(profile: profile)
           }
         }
       }
@@ -237,7 +215,7 @@ struct ContentView: View {
     }
   }
 
-  private func handleProfileAddSuccess(profile: Account) async {
+  private func handleProfileAdded(profile: Account) async {
     do {
       let account = try addOrUpdateAccount(
         email: profile.email,

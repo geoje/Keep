@@ -6,7 +6,7 @@ class ChromeProfileService: ObservableObject {
   private let chromeDriverService: ChromeDriverService
   private var monitorTask: Task<Void, Never>?
   private var initialProfiles: Set<String> = []
-  var onAddSuccess: ((Account) -> Void)?
+  var onAddProfile: ((Account) -> Void)?
 
   init(chromeDriverService: ChromeDriverService) {
     self.chromeDriverService = chromeDriverService
@@ -55,13 +55,15 @@ class ChromeProfileService: ObservableObject {
           return
         }
 
-        let newProfiles = self.getCurrentProfiles().subtracting(self.initialProfiles)
+        let currentProfiles = self.getCurrentProfiles()
+
+        let newProfiles = currentProfiles.subtracting(self.initialProfiles)
         for profileName in newProfiles where self.hasNewTabPage(profileName: profileName) {
           if let newProfile = self.parseProfileAccount(
             chromeDataDir: chromeDataDir, profileName: profileName)
           {
             self.stopMonitoring()
-            self.onAddSuccess?(newProfile)
+            self.onAddProfile?(newProfile)
             self.chromeDriverService.killAllChromeProcesses()
             return
           }
@@ -121,6 +123,36 @@ class ChromeProfileService: ObservableObject {
     }
 
     return Account(email: email, picture: pictureUrl, profileName: profileName)
+  }
+
+  func deleteProfile(profileName: String) throws {
+    guard let chromeDataDir = chromeDriverService.getChromeDataDir() else {
+      throw ChromeProfileError.dataDirectoryNotFound
+    }
+
+    let localStatePath = chromeDataDir.appendingPathComponent("Local State")
+    let profilePath = chromeDataDir.appendingPathComponent(profileName)
+
+    if FileManager.default.fileExists(atPath: localStatePath.path) {
+      let data = try Data(contentsOf: localStatePath)
+      var json = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+
+      if var profile = json["profile"] as? [String: Any],
+        var infoCache = profile["info_cache"] as? [String: Any]
+      {
+        infoCache.removeValue(forKey: profileName)
+        profile["info_cache"] = infoCache
+        json["profile"] = profile
+
+        let updatedData = try JSONSerialization.data(
+          withJSONObject: json, options: [.prettyPrinted, .sortedKeys])
+        try updatedData.write(to: localStatePath)
+      }
+    }
+
+    if FileManager.default.fileExists(atPath: profilePath.path) {
+      try FileManager.default.removeItem(at: profilePath)
+    }
   }
 
   private func hasNewTabPage(profileName: String) -> Bool {
