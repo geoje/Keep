@@ -84,7 +84,7 @@ struct ContentView: View {
         if chromeProfileService == nil {
           chromeProfileService = ChromeProfileService(
             chromeDriverService: chromeDriverService)
-          chromeProfileService?.onAddProfile = { profile in
+          chromeProfileService?.onAddSuccess = { profile in
             Task {
               await handleProfileAdded(profile: profile)
             }
@@ -202,7 +202,7 @@ struct ContentView: View {
       if chromeProfileService == nil {
         chromeProfileService = ChromeProfileService(
           chromeDriverService: chromeDriverService)
-        chromeProfileService?.onAddProfile = { profile in
+        chromeProfileService?.onAddSuccess = { profile in
           Task {
             await handleProfileAdded(profile: profile)
           }

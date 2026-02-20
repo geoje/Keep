@@ -7,36 +7,16 @@ class ChromeProfileService: ObservableObject {
   private let chromeDriverService: ChromeDriverService
   private var monitorTask: Task<Void, Never>?
   private var initialProfiles: Set<String> = []
-  var onAddProfile: ((Account) -> Void)?
+  var onAddSuccess: ((Account) -> Void)?
 
   init(chromeDriverService: ChromeDriverService) {
     self.chromeDriverService = chromeDriverService
   }
 
   func startAdd() async throws {
-    guard let chromePath = chromeDriverService.getChromePath() else {
-      throw ChromeProfileError.chromeNotFound
-    }
-
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-    process.arguments =
-      ["-a", chromePath, "--args"]
-      + chromeDriverService.buildChromeArgs(
-        headless: false, profileDirectory: "Guest Profile")
-
-    try process.run()
+    try await chromeDriverService.launchChrome(
+      url: "https://accounts.google.com/AddSession", headless: false)
     startMonitoring()
-  }
-
-  func loadChromeProfiles() -> [Account] {
-    guard let chromeDataDir = chromeDriverService.getChromeDataDir() else {
-      return []
-    }
-
-    return getCurrentProfiles().compactMap { profileName in
-      parseProfileAccount(chromeDataDir: chromeDataDir, profileName: profileName)
-    }
   }
 
   private func startMonitoring() {
@@ -44,28 +24,37 @@ class ChromeProfileService: ObservableObject {
     monitorTask = Task { [weak self] in
       guard let self = self else { return }
 
-      self.initialProfiles = self.getCurrentProfiles()
-      guard let chromeDataDir = self.chromeDriverService.getChromeDataDir() else { return }
+      guard let chromeDataDir = self.chromeDriverService.getChromeDataDir() else {
+        return
+      }
+
+      let allProfiles = self.getCurrentProfiles()
+      self.initialProfiles = Set(
+        allProfiles.filter { profileName in
+          self.parseProfileAccount(chromeDataDir: chromeDataDir, profileName: profileName) != nil
+        })
 
       while !Task.isCancelled {
         try? await Task.sleep(for: .seconds(1))
 
-        guard self.isChromeGuestProfileRunning() else {
+        guard let sessionId = self.chromeDriverService.getSessionId(),
+          await self.isSessionAlive(sessionId: sessionId)
+        else {
           self.stopMonitoring()
-          self.chromeDriverService.killAllChromeProcesses()
+          await self.chromeDriverService.cleanup()
           return
         }
 
         let currentProfiles = self.getCurrentProfiles()
-
         let newProfiles = currentProfiles.subtracting(self.initialProfiles)
-        for profileName in newProfiles where self.hasNewTabPage(profileName: profileName) {
+
+        for profileName in newProfiles where self.isExplicitSignIn(profileName: profileName) {
           if let newProfile = self.parseProfileAccount(
             chromeDataDir: chromeDataDir, profileName: profileName)
           {
             self.stopMonitoring()
-            self.onAddProfile?(newProfile)
-            self.chromeDriverService.killAllChromeProcesses()
+            self.onAddSuccess?(newProfile)
+            await self.chromeDriverService.cleanup()
             return
           }
         }
@@ -76,6 +65,32 @@ class ChromeProfileService: ObservableObject {
   private func stopMonitoring() {
     monitorTask?.cancel()
     monitorTask = nil
+  }
+
+  private func isExplicitSignIn(profileName: String) -> Bool {
+    guard let chromeDataDir = chromeDriverService.getChromeDataDir(),
+      let data = try? Data(
+        contentsOf: chromeDataDir.appendingPathComponent(profileName).appendingPathComponent(
+          "Preferences")),
+      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+      let signin = json["signin"] as? [String: Any],
+      let explicitBrowserSignin = signin["explicit_browser_signin"] as? Bool,
+      let signinWithExplicitBrowserSigninOn = signin["signin_with_explicit_browser_signin_on"]
+        as? Bool
+    else {
+      return false
+    }
+    return explicitBrowserSignin && signinWithExplicitBrowserSigninOn
+  }
+
+  func loadChromeProfiles() -> [Account] {
+    guard let chromeDataDir = chromeDriverService.getChromeDataDir() else {
+      return []
+    }
+
+    return getCurrentProfiles().compactMap { profileName in
+      parseProfileAccount(chromeDataDir: chromeDataDir, profileName: profileName)
+    }
   }
 
   private func getCurrentProfiles() -> Set<String> {
@@ -128,7 +143,7 @@ class ChromeProfileService: ObservableObject {
 
   func syncNotes(for account: Account, modelContext: ModelContext) async throws {
     try await chromeDriverService.launchChrome(
-      url: "https://google.com",
+      url: "https://keep.google.com",
       headless: true,
       profileDirectory: account.profileName
     )
@@ -164,33 +179,18 @@ class ChromeProfileService: ObservableObject {
     }
   }
 
-  private func hasNewTabPage(profileName: String) -> Bool {
-    guard let chromeDataDir = chromeDriverService.getChromeDataDir(),
-      let data = try? Data(
-        contentsOf: chromeDataDir.appendingPathComponent(profileName).appendingPathComponent(
-          "Preferences")),
-      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-    else {
+  private func isSessionAlive(sessionId: String) async -> Bool {
+    let url = URL(string: "http://localhost:9515/session/\(sessionId)/title")!
+    var request = URLRequest(url: url)
+    request.httpMethod = "GET"
+
+    do {
+      let (_, response) = try await URLSession.shared.data(for: request)
+      guard let httpResponse = response as? HTTPURLResponse else { return false }
+      return httpResponse.statusCode == 200
+    } catch {
       return false
     }
-    return json["NewTabPage"] != nil
-  }
-
-  nonisolated private func isChromeGuestProfileRunning() -> Bool {
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
-    process.arguments = ["-f", "Guest Profile"]
-    process.standardOutput = Pipe()
-
-    guard (try? process.run()) != nil else { return false }
-    process.waitUntilExit()
-
-    guard let data = (process.standardOutput as? Pipe)?.fileHandleForReading.readDataToEndOfFile(),
-      let output = String(data: data, encoding: .utf8)
-    else {
-      return false
-    }
-    return !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
   }
 }
 

@@ -119,7 +119,7 @@ class ChromeDriverService: ObservableObject {
     return sessionId
   }
 
-  func buildChromeArgs(headless: Bool, profileDirectory: String = "Default") -> [String] {
+  private func buildChromeArgs(headless: Bool, profileDirectory: String = "Default") -> [String] {
     var chromeArgs = [
       "--disable-blink-features=AutomationControlled",
       "--no-default-browser-check",
@@ -130,7 +130,6 @@ class ChromeDriverService: ObservableObject {
 
     if headless {
       chromeArgs.append("--headless=new")
-      chromeArgs.append("--remote-debugging-port=9222")
       if let version = getChromeVersion() {
         chromeArgs.append("--user-agent=Chrome/\(version)")
       }
@@ -229,6 +228,7 @@ class ChromeDriverService: ObservableObject {
   func cleanup() async {
     await deleteAllSessions()
     stopChromeDriver()
+    killAllChromedrivers()
     killAllChromeProcesses()
   }
 
@@ -236,8 +236,6 @@ class ChromeDriverService: ObservableObject {
     if let process = chromedriverProcess, process.isRunning {
       process.terminate()
       chromedriverProcess = nil
-    } else {
-      killAllChromedrivers()
     }
   }
 
@@ -249,7 +247,7 @@ class ChromeDriverService: ObservableObject {
     process.waitUntilExit()
   }
 
-  func killAllChromeProcesses() {
+  private func killAllChromeProcesses() {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
     process.arguments = ["-9", "Google Chrome for Testing"]
