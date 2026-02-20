@@ -8,7 +8,9 @@ class ChromeDriverService: ObservableObject {
   private var sessionId: String?
   private var cachedChromeVersion: String?
 
-  func launchChrome(url: String, headless: Bool = false) async throws {
+  func launchChrome(url: String, headless: Bool = false, profileDirectory: String = "Default")
+    async throws
+  {
     guard let chromedriverPath = Bundle.main.path(forResource: "chromedriver", ofType: nil)
     else {
       throw ChromeDriverError.chromedriverNotFound
@@ -21,7 +23,8 @@ class ChromeDriverService: ObservableObject {
     try await startChromeDriver(chromedriverPath: chromedriverPath)
     await deleteAllSessions()
 
-    let sessionId = try await createChromeSession(chromePath: chromePath, headless: headless)
+    let sessionId = try await createChromeSession(
+      chromePath: chromePath, headless: headless, profileDirectory: profileDirectory)
     self.sessionId = sessionId
 
     try await navigateToURL(sessionId: sessionId, url: url)
@@ -82,13 +85,15 @@ class ChromeDriverService: ObservableObject {
     }
   }
 
-  private func createChromeSession(chromePath: String, headless: Bool) async throws -> String {
+  private func createChromeSession(
+    chromePath: String, headless: Bool, profileDirectory: String = "Default"
+  ) async throws -> String {
     let url = URL(string: "http://localhost:\(driverPort)/session")!
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-    let chromeArgs = buildChromeArgs(headless: headless)
+    let chromeArgs = buildChromeArgs(headless: headless, profileDirectory: profileDirectory)
     let body: [String: Any] = [
       "capabilities": [
         "alwaysMatch": [
@@ -125,6 +130,7 @@ class ChromeDriverService: ObservableObject {
 
     if headless {
       chromeArgs.append("--headless=new")
+      chromeArgs.append("--remote-debugging-port=9222")
       if let version = getChromeVersion() {
         chromeArgs.append("--user-agent=Chrome/\(version)")
       }

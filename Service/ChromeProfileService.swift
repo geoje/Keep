@@ -127,7 +127,11 @@ class ChromeProfileService: ObservableObject {
   }
 
   func syncNotes(for account: Account, modelContext: ModelContext) async throws {
-
+    try await chromeDriverService.launchChrome(
+      url: "https://google.com",
+      headless: true,
+      profileDirectory: account.profileName
+    )
   }
 
   func deleteProfile(profileName: String) throws {
