@@ -110,13 +110,29 @@ struct AccountRowView: View {
       )
     } else {
       return AnyView(
-        HStack(spacing: 4) {
-          Image(systemName: "document")
-            .font(.system(size: 12))
-            .foregroundStyle(.secondary)
-          Text("\(noteCount)")
-            .font(.caption)
-            .foregroundStyle(.secondary)
+        HStack(spacing: 16) {
+          HStack(spacing: 4) {
+            Image(systemName: "document")
+              .font(.system(size: 12))
+              .foregroundStyle(.secondary)
+            Text("\(noteCount)")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+
+          HStack(spacing: 4) {
+            if !account.masterToken.isEmpty {
+              Image(systemName: "key")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+            }
+
+            if !account.profileName.isEmpty {
+              Image(systemName: "person")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+            }
+          }
         }
       )
     }

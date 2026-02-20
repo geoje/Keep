@@ -4,40 +4,60 @@ import SwiftUI
 
 struct ContentView: View {
   @Environment(\.modelContext) private var modelContext
-  @Query private var playAccounts: [Account]
+  @Query private var accounts: [Account]
 
   @State private var showingAddAccountOptions = false
   @State private var showingErrorAlert = false
   @State private var errorMessage = ""
   @State private var chromePlayService: ChromePlayService?
   @State private var chromeProfileService: ChromeProfileService?
-  @State private var profileAccounts: [Account] = []
 
   @StateObject private var viewModel = ContentViewModel()
   @StateObject private var chromeDriverService = ChromeDriverService()
 
   var body: some View {
     let content: some View =
-      if playAccounts.isEmpty {
+      if accounts.isEmpty {
         AnyView(EmptyAccountsView())
       } else {
         AnyView(
           AccountListView(
-            playServiceAccounts: playAccounts, chromeProfileAccounts: profileAccounts,
+            accounts: accounts,
             contentViewModel: viewModel))
       }
     return
       content
       .frame(minWidth: 360, maxWidth: 360, minHeight: 240)
       .alert("🗑️ Delete Account", isPresented: $viewModel.showDeleteConfirm) {
-        Button("Cancel", role: .cancel) {}
-        Button("Delete", role: .destructive) {
-          viewModel.deleteSelectedAccount(modelContext: modelContext) { profileAccount in
-            profileAccounts.removeAll { $0.email == profileAccount.email }
+        if let account = viewModel.selectedAccount {
+          if !account.masterToken.isEmpty && !account.profileName.isEmpty {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete Play Service", role: .destructive) {
+              viewModel.deleteSelectedAccount(modelContext: modelContext)
+            }
+          } else if !account.masterToken.isEmpty {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+              viewModel.deleteSelectedAccount(modelContext: modelContext)
+            }
+          } else if !account.profileName.isEmpty {
+            Button("OK", role: .cancel) {}
           }
         }
       } message: {
-        Text("Are you sure you want to delete this account?")
+        if let account = viewModel.selectedAccount {
+          if !account.masterToken.isEmpty && !account.profileName.isEmpty {
+            Text(
+              "Only removing Play Service login. Profile can be removed from Chrome profile manager (Add > Add Chrome Profile)."
+            )
+          } else if !account.masterToken.isEmpty {
+            Text("Are you sure you want to delete this account?")
+          } else if !account.profileName.isEmpty {
+            Text(
+              "Profile can be removed from Chrome profile manager. Go to Add > Add Chrome Profile to manage profiles."
+            )
+          }
+        }
       }
       .toolbar {
         if viewModel.hasSelectedAccount {
@@ -58,34 +78,15 @@ struct ContentView: View {
           }
         }
       }
-      .alert("➕ Add Account", isPresented: $showingAddAccountOptions) {
-        Button("Login Play Service") {
+      .alert("Add Account", isPresented: $showingAddAccountOptions) {
+        Button("🔑 Login Play Service") {
           Task {
-            do {
-              if chromePlayService == nil {
-                chromePlayService = ChromePlayService(
-                  chromeDriverService: chromeDriverService)
-                chromePlayService?.onLoginSuccess = { email, oauthToken in
-                  Task {
-                    await handlePlayLoginSuccess(email: email, oauthToken: oauthToken)
-                  }
-                }
-              }
-              try await chromePlayService?.startLogin()
-            } catch {
-              errorMessage = error.localizedDescription
-              showingErrorAlert = true
-            }
+            await handleAddPlayAccount()
           }
         }
-        Button("Add Chrome Profile") {
+        Button("👤 Add Chrome Profile") {
           Task {
-            do {
-              try await chromeProfileService?.startAdd()
-            } catch {
-              errorMessage = error.localizedDescription
-              showingErrorAlert = true
-            }
+            await handleAddProfileAccount()
           }
         }
         Button("Cancel", role: .cancel) {}
@@ -100,45 +101,108 @@ struct ContentView: View {
         Text(errorMessage)
       }
       .onAppear {
+        guard ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" else {
+          return
+        }
         if chromeProfileService == nil {
           chromeProfileService = ChromeProfileService(
             chromeDriverService: chromeDriverService)
-          chromeProfileService?.onAddSuccess = { profiles in
+          chromeProfileService?.onAddSuccess = { profile in
             Task {
-              await MainActor.run {
-                profileAccounts = profiles
-              }
+              await handleProfileAddSuccess(profile: profile)
             }
           }
-        }
-        profileAccounts = chromeProfileService?.loadChromeProfiles() ?? []
-      }
-      .onOpenURL { url in
-        if url.scheme == "https" {
-          NSWorkspace.shared.open(url)
-          if let fragment = url.fragment, let serverId = fragment.split(separator: "/").last {
-            let serverIdString = String(serverId)
-            Task {
-              do {
-                let note = try modelContext.fetch(
-                  FetchDescriptor<Note>(predicate: #Predicate { $0.serverId == serverIdString })
-                ).first
-                if let note = note,
-                  let account = playAccounts.first(where: { $0.email == note.email })
-                {
-                  viewModel.selectPlayAccount(
-                    account, modelContext: modelContext
-                  ) {
-                    NSApplication.shared.terminate(nil)
-                  }
-                }
-              } catch {
-                NSApplication.shared.terminate(nil)
-              }
-            }
+          Task {
+            await syncChromeProfiles()
           }
         }
       }
+      .onOpenURL { url in handleOpenURL(url) }
+  }
+
+  private func syncChromeProfiles() async {
+    guard let chromeProfileService = chromeProfileService else { return }
+
+    do {
+      let currentProfiles = chromeProfileService.loadChromeProfiles()
+      let currentProfileEmails = Set(currentProfiles.map { $0.email })
+
+      let existingAccounts = try modelContext.fetch(
+        FetchDescriptor<Account>(predicate: #Predicate { !$0.profileName.isEmpty })
+      )
+
+      for profile in currentProfiles {
+        _ = try addOrUpdateAccount(
+          email: profile.email,
+          picture: profile.picture,
+          profileName: profile.profileName,
+          masterToken: profile.masterToken
+        )
+      }
+
+      for account in existingAccounts {
+        if !currentProfileEmails.contains(account.email) {
+          if !account.masterToken.isEmpty {
+            account.profileName = ""
+          } else {
+            modelContext.delete(account)
+          }
+        }
+      }
+
+      try modelContext.save()
+    } catch {
+      print("Failed to sync Chrome profiles: \(error)")
+    }
+  }
+
+  private func addOrUpdateAccount(
+    email: String,
+    picture: String = "",
+    profileName: String = "",
+    masterToken: String = ""
+  ) throws -> Account {
+    let existingAccounts = try modelContext.fetch(
+      FetchDescriptor<Account>(predicate: #Predicate { $0.email == email })
+    )
+
+    if let existingAccount = existingAccounts.first {
+      if !picture.isEmpty {
+        existingAccount.picture = picture
+      }
+      if !profileName.isEmpty {
+        existingAccount.profileName = profileName
+      }
+      if !masterToken.isEmpty {
+        existingAccount.masterToken = masterToken
+      }
+      try modelContext.save()
+      return existingAccount
+    } else {
+      let newAccount = Account(
+        email: email, picture: picture, profileName: profileName, masterToken: masterToken)
+      modelContext.insert(newAccount)
+      try modelContext.save()
+      return newAccount
+    }
+  }
+
+  private func handleAddPlayAccount() async {
+    do {
+      if chromePlayService == nil {
+        chromePlayService = ChromePlayService(
+          chromeDriverService: chromeDriverService)
+        chromePlayService?.onLoginSuccess = { email, oauthToken in
+          Task {
+            await handlePlayLoginSuccess(email: email, oauthToken: oauthToken)
+          }
+        }
+      }
+      try await chromePlayService?.startLogin()
+    } catch {
+      errorMessage = error.localizedDescription
+      showingErrorAlert = true
+    }
   }
 
   private func handlePlayLoginSuccess(email: String, oauthToken: String) async {
@@ -147,17 +211,73 @@ struct ContentView: View {
       let masterToken = try await authService.fetchMasterToken(
         email: email, oauthToken: oauthToken)
 
-      let newAccount = Account(email: email, masterToken: masterToken)
-      modelContext.insert(newAccount)
-      try modelContext.save()
-
-      viewModel.selectPlayAccount(newAccount, modelContext: modelContext)
+      let account = try addOrUpdateAccount(email: email, masterToken: masterToken)
+      viewModel.selectAccount(account, modelContext: modelContext)
     } catch {
       errorMessage = error.localizedDescription
       showingErrorAlert = true
     }
   }
 
+  private func handleAddProfileAccount() async {
+    do {
+      if chromeProfileService == nil {
+        chromeProfileService = ChromeProfileService(
+          chromeDriverService: chromeDriverService)
+        chromeProfileService?.onAddSuccess = { profile in
+          Task {
+            await handleProfileAddSuccess(profile: profile)
+          }
+        }
+      }
+      try await chromeProfileService?.startAdd()
+    } catch {
+      errorMessage = error.localizedDescription
+      showingErrorAlert = true
+    }
+  }
+
+  private func handleProfileAddSuccess(profile: Account) async {
+    do {
+      let account = try addOrUpdateAccount(
+        email: profile.email,
+        picture: profile.picture,
+        profileName: profile.profileName,
+        masterToken: profile.masterToken
+      )
+      viewModel.selectAccount(account, modelContext: modelContext)
+    } catch {
+      errorMessage = error.localizedDescription
+      showingErrorAlert = true
+    }
+  }
+
+  private func handleOpenURL(_ url: URL) {
+    if url.scheme == "https" {
+      NSWorkspace.shared.open(url)
+      if let fragment = url.fragment, let serverId = fragment.split(separator: "/").last {
+        let serverIdString = String(serverId)
+        Task {
+          do {
+            let note = try modelContext.fetch(
+              FetchDescriptor<Note>(predicate: #Predicate { $0.serverId == serverIdString })
+            ).first
+            if let note = note,
+              let account = accounts.first(where: { $0.email == note.email })
+            {
+              viewModel.selectAccount(
+                account, modelContext: modelContext
+              ) {
+                NSApplication.shared.terminate(nil)
+              }
+            }
+          } catch {
+            NSApplication.shared.terminate(nil)
+          }
+        }
+      }
+    }
+  }
 }
 
 #Preview("Empty Accounts") {
@@ -171,22 +291,22 @@ struct ContentView: View {
     configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]
   )
 
-  let viewModel = ContentViewModel()
-
-  return AccountListView(
-    playServiceAccounts: [
-      Account(
-        email: "boy@gmail.com",
-        picture: "https://cdn-icons-png.flaticon.com/128/16683/16683419.png"
-      )
-    ],
-    chromeProfileAccounts: [
-      Account(
-        email: "girl@gmail.com",
-        picture: "https://cdn-icons-png.flaticon.com/128/16683/16683451.png"
-      )
-    ],
-    contentViewModel: viewModel
+  container.mainContext.insert(
+    Account(
+      email: "boy@gmail.com",
+      picture: "https://cdn-icons-png.flaticon.com/128/16683/16683419.png",
+      masterToken: "sample_master_token"
+    )
   )
-  .modelContainer(container)
+  container.mainContext.insert(
+    Account(
+      email: "girl@gmail.com",
+      picture: "https://cdn-icons-png.flaticon.com/128/16683/16683451.png",
+      profileName: "Profile 1",
+      masterToken: "sample_master_token"
+    )
+  )
+
+  return ContentView()
+    .modelContainer(container)
 }

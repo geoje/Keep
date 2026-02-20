@@ -3,50 +3,81 @@ import SwiftData
 import SwiftUI
 import WidgetKit
 
-enum AccountSection {
-  case playService
-  case chromeProfile
-}
-
 @MainActor
 class ContentViewModel: ObservableObject {
   @Published var showDeleteConfirm = false
-  @Published var hasSelectedAccount = false
+  @Published var selectedAccount: Account?
+  @Published var hoveredEmail: String?
+  @Published var loadingStates: [String: Bool] = [:]
+  @Published var errorMessages: [String: String] = [:]
 
-  let playAccountViewModel = PlayAccountViewModel()
-  let profileAccountViewModel = ProfileAccountViewModel()
+  var hasSelectedAccount: Bool {
+    selectedAccount != nil
+  }
 
-  private var cancellables = Set<AnyCancellable>()
+  private var noteService: NoteService
+  private var peopleService: GooglePeopleService
 
   init() {
-    // Observe changes in both view models
-    playAccountViewModel.$selectedAccount
-      .combineLatest(profileAccountViewModel.$selectedAccount)
-      .map { playAccount, profileAccount in
-        playAccount != nil || profileAccount != nil
-      }
-      .assign(to: &$hasSelectedAccount)
+    self.noteService = NoteService()
+    self.peopleService = GooglePeopleService()
   }
 
-  func selectPlayAccount(
+  func selectAccount(
     _ account: Account, modelContext: ModelContext, completion: @escaping () -> Void = {}
   ) {
-    profileAccountViewModel.clearSelection()
-    playAccountViewModel.selectAccount(account, modelContext: modelContext, completion: completion)
+    if selectedAccount?.email == account.email {
+      selectedAccount = nil
+    } else {
+      selectedAccount = account
+      errorMessages[account.email] = nil
+      loadingStates[account.email] = true
+      Task {
+        do {
+          try await noteService.syncNotes(for: account, modelContext: modelContext)
+
+          WidgetCenter.shared.reloadAllTimelines()
+
+          if account.picture.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if let profileURL = try await peopleService.fetchProfileURL(
+              accessToken: account.accessToken),
+              !profileURL.isEmpty
+            {
+              account.picture = profileURL
+              try modelContext.save()
+            }
+          }
+        } catch {
+          errorMessages[account.email] = error.localizedDescription
+        }
+        loadingStates[account.email] = false
+        completion()
+      }
+    }
   }
 
-  func selectProfileAccount(_ account: Account) {
-    playAccountViewModel.clearSelection()
-    profileAccountViewModel.selectAccount(account)
-  }
+  func deleteSelectedAccount(modelContext: ModelContext) {
+    guard let account = selectedAccount else { return }
 
-  func deleteSelectedAccount(
-    modelContext: ModelContext, onDeleteProfile: @escaping (Account) -> Void
-  ) {
-    if playAccountViewModel.selectedAccount != nil {
-      playAccountViewModel.deleteAccount(modelContext: modelContext)
-    } else if profileAccountViewModel.selectedAccount != nil {
-      profileAccountViewModel.deleteAccount(modelContext: modelContext, onDelete: onDeleteProfile)
+    if !account.masterToken.isEmpty && !account.profileName.isEmpty {
+      account.masterToken = ""
+      try? modelContext.save()
+      return
+    }
+
+    if !account.masterToken.isEmpty {
+      let existingNotes = try? modelContext.fetch(FetchDescriptor<Note>()).filter {
+        $0.email == account.email
+      }
+      if let notes = existingNotes {
+        for note in notes {
+          modelContext.delete(note)
+        }
+      }
+
+      modelContext.delete(account)
+      selectedAccount = nil
+      try? modelContext.save()
     }
   }
 }

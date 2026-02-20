@@ -6,7 +6,7 @@ class ChromeProfileService: ObservableObject {
   private let chromeDriverService: ChromeDriverService
   private var monitorTask: Task<Void, Never>?
   private var initialProfiles: Set<String> = []
-  var onAddSuccess: (([Account]) -> Void)?
+  var onAddSuccess: ((Account) -> Void)?
 
   init(chromeDriverService: ChromeDriverService) {
     self.chromeDriverService = chromeDriverService
@@ -57,11 +57,11 @@ class ChromeProfileService: ObservableObject {
 
         let newProfiles = self.getCurrentProfiles().subtracting(self.initialProfiles)
         for profileName in newProfiles where self.hasNewTabPage(profileName: profileName) {
-          if self.parseProfileAccount(
-            chromeDataDir: chromeDataDir, profileName: profileName) != nil
+          if let newProfile = self.parseProfileAccount(
+            chromeDataDir: chromeDataDir, profileName: profileName)
           {
             self.stopMonitoring()
-            self.onAddSuccess?(self.loadChromeProfiles())
+            self.onAddSuccess?(newProfile)
             self.chromeDriverService.killAllChromeProcesses()
             return
           }
@@ -120,7 +120,7 @@ class ChromeProfileService: ObservableObject {
       return nil
     }
 
-    return Account(email: email, picture: pictureUrl)
+    return Account(email: email, picture: pictureUrl, profileName: profileName)
   }
 
   private func hasNewTabPage(profileName: String) -> Bool {

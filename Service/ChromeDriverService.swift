@@ -54,7 +54,6 @@ class ChromeDriverService: ObservableObject {
       .appendingPathComponent(bundleIdentifier)
       .appendingPathComponent("Chrome")
 
-    // Create directory if it doesn't exist
     try? FileManager.default.createDirectory(
       at: chromeDataDir,
       withIntermediateDirectories: true
@@ -163,7 +162,6 @@ class ChromeDriverService: ObservableObject {
       return nil
     }
 
-    // 145.0.7632.67 -> 145.0.0.0
     let components = version.split(separator: ".")
     if components.count >= 1 {
       let result = "\(components[0]).0.0.0"
