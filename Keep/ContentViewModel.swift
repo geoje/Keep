@@ -15,13 +15,11 @@ class ContentViewModel: ObservableObject {
     selectedAccount != nil
   }
 
-  private var noteService: NoteService
-  private var peopleService: GooglePeopleService
+  private var googleApiService: GoogleApiService
   var chromeProfileService: ChromeProfileService?
 
   init() {
-    self.noteService = NoteService()
-    self.peopleService = GooglePeopleService()
+    self.googleApiService = GoogleApiService()
   }
 
   func selectAccount(
@@ -36,7 +34,7 @@ class ContentViewModel: ObservableObject {
       Task {
         do {
           if !account.masterToken.isEmpty {
-            try await noteService.syncNotes(for: account, modelContext: modelContext)
+            try await googleApiService.syncNotes(for: account, modelContext: modelContext)
           } else if !account.profileName.isEmpty {
             try await chromeProfileService?.syncNotes(for: account, modelContext: modelContext)
           }
@@ -44,7 +42,7 @@ class ContentViewModel: ObservableObject {
           WidgetCenter.shared.reloadAllTimelines()
 
           if account.picture.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            if let profileURL = try await peopleService.fetchProfileURL(
+            if let profileURL = try await googleApiService.fetchProfileURL(
               accessToken: account.accessToken),
               !profileURL.isEmpty
             {

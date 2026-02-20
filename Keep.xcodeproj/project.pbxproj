@@ -59,13 +59,11 @@
 			);
 			target = 85C16FF02F2E60550030AABC /* NoteWidgetsExtension */;
 		};
-		8564A1E92F2F58FB0014F5E4 /* Exceptions for "Service" folder in "NoteWidgetsExtension" target */ = {
+		851957292F491A1500DFA804 /* Exceptions for "Service" folder in "NoteWidgetsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				GoogleAuthService.swift,
-				GoogleKeepService.swift,
+				GoogleApiService.swift,
 				NoteService.swift,
-				PlayAccountService.swift,
 			);
 			target = 85C16FF02F2E60550030AABC /* NoteWidgetsExtension */;
 		};
@@ -97,7 +95,7 @@
 		85B31FF82F2BF67500CC523E /* Service */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				8564A1E92F2F58FB0014F5E4 /* Exceptions for "Service" folder in "NoteWidgetsExtension" target */,
+				851957292F491A1500DFA804 /* Exceptions for "Service" folder in "NoteWidgetsExtension" target */,
 			);
 			path = Service;
 			sourceTree = "<group>";

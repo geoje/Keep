@@ -1,15 +1,6 @@
 import Foundation
-import SwiftData
 
 class NoteService {
-  func syncNotes(for account: Account, modelContext: ModelContext) async throws {
-    let accountService = PlayAccountService()
-    let accessToken = try await accountService.getAccessToken(for: account)
-    let keepService = GoogleKeepService()
-    try await keepService.syncNotes(
-      email: account.email, accessToken: accessToken, modelContext: modelContext)
-  }
-
   func getRootNotes(notes: [Note], email: String) -> [Note] {
     notes.filter {
       $0.email == email && $0.parentId == "root" && !$0.isArchived

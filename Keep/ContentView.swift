@@ -185,8 +185,8 @@ struct ContentView: View {
 
   private func handlePlayLoginSuccess(email: String, oauthToken: String) async {
     do {
-      let authService = GoogleAuthService()
-      let masterToken = try await authService.fetchMasterToken(
+      let googleApiService = GoogleApiService()
+      let masterToken = try await googleApiService.fetchMasterToken(
         email: email, oauthToken: oauthToken)
 
       let account = try addOrUpdateAccount(email: email, masterToken: masterToken)

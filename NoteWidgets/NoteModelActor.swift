@@ -26,7 +26,8 @@ actor NoteModelActor: ModelActor {
       entities.append(NoteEntity(id: account.email, email: ""))
       entities.append(
         contentsOf: rootNotes.map {
-          let uncheckedItems = noteService.parseUncheckedItems(notes: allNotes, rootNoteId: $0.id)
+          let uncheckedItems = noteService.parseUncheckedItems(
+            notes: allNotes, rootNoteId: $0.id)
           let checkedItems = noteService.parseCheckedItems(notes: allNotes, rootNoteId: $0.id)
 
           if $0.type == "LIST" {
@@ -50,8 +51,8 @@ actor NoteModelActor: ModelActor {
       predicate: #Predicate { $0.email == email }
     )
     if let account = try modelContext.fetch(accountDescriptor).first {
-      let noteService = NoteService()
-      try await noteService.syncNotes(for: account, modelContext: modelContext)
+      let googleApiService = GoogleApiService()
+      try await googleApiService.syncNotes(for: account, modelContext: modelContext)
     }
   }
 }
