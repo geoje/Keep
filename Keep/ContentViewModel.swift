@@ -35,7 +35,11 @@ class ContentViewModel: ObservableObject {
       loadingStates[account.email] = true
       Task {
         do {
-          try await noteService.syncNotes(for: account, modelContext: modelContext)
+          if !account.masterToken.isEmpty {
+            try await noteService.syncNotes(for: account, modelContext: modelContext)
+          } else if !account.profileName.isEmpty {
+            try await chromeProfileService?.syncNotes(for: account, modelContext: modelContext)
+          }
 
           WidgetCenter.shared.reloadAllTimelines()
 

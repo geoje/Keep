@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import SwiftData
 
 @MainActor
 class ChromeProfileService: ObservableObject {
@@ -123,6 +124,10 @@ class ChromeProfileService: ObservableObject {
     }
 
     return Account(email: email, picture: pictureUrl, profileName: profileName)
+  }
+
+  func syncNotes(for account: Account, modelContext: ModelContext) async throws {
+
   }
 
   func deleteProfile(profileName: String) throws {
