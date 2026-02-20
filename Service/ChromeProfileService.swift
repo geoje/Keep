@@ -57,8 +57,8 @@ class ChromeProfileService: ObservableObject {
 
         let newProfiles = self.getCurrentProfiles().subtracting(self.initialProfiles)
         for profileName in newProfiles where self.hasNewTabPage(profileName: profileName) {
-          if let account = self.parseProfileAccount(
-            chromeDataDir: chromeDataDir, profileName: profileName)
+          if self.parseProfileAccount(
+            chromeDataDir: chromeDataDir, profileName: profileName) != nil
           {
             self.stopMonitoring()
             self.onAddSuccess?(self.loadChromeProfiles())
