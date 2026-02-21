@@ -1,101 +1,102 @@
-import Combine
+import AppKit
 import SwiftData
 import SwiftUI
 
 struct ContentView: View {
-  @Environment(\.modelContext) private var modelContext
-  @Query private var accounts: [Account]
+  let modelContainer: ModelContainer
+
+  @StateObject private var viewModel = ContentViewModel()
+  @StateObject private var chromeDriverService = ChromeDriverService()
 
   @State private var showingAddAccountOptions = false
   @State private var showingErrorAlert = false
   @State private var errorMessage = ""
   @State private var chromePlayService: ChromePlayService?
   @State private var chromeProfileService: ChromeProfileService?
+  @State private var accounts: [Account] = []
+  @State private var notes: [Note] = []
 
-  @StateObject private var viewModel = ContentViewModel()
-  @StateObject private var chromeDriverService = ChromeDriverService()
+  private var noteService: NoteService { NoteService() }
+
+  private var modelContext: ModelContext {
+    modelContainer.mainContext
+  }
 
   var body: some View {
-    let content: some View =
-      if accounts.isEmpty {
-        AnyView(EmptyAccountsView())
-      } else {
-        AnyView(
-          AccountListView(
-            accounts: accounts,
-            contentViewModel: viewModel))
+    Text("Add Account").font(.subheadline).bold()
+    Button("Play Service 🔑") {
+      Task {
+        await handleAddPlayAccount()
       }
-    return
-      content
-      .frame(minWidth: 360, maxWidth: 360, minHeight: 240)
-      .alert("🗑️ Delete Account", isPresented: $viewModel.showDeleteConfirm) {
-        Button("Cancel", role: .cancel) {}
-        Button("Delete", role: .destructive) {
-          viewModel.deleteSelectedAccount(modelContext: modelContext)
-        }
-      } message: {
-        Text("Are you sure you want to delete this account?")
+    }
+    Button("Chrome Profiles 👤") {
+      Task {
+        await handleAddProfileAccount()
       }
-      .toolbar {
-        if viewModel.hasSelectedAccount {
-          ToolbarItem(placement: .automatic) {
-            Button(action: {
-              viewModel.showDeleteConfirm = true
-            }) {
-              Label("Delete", systemImage: "trash")
-                .foregroundStyle(.red)
-            }
-          }
-        }
-        ToolbarItem(placement: .automatic) {
-          Button(action: {
-            showingAddAccountOptions = true
-          }) {
-            Label("Add", systemImage: "plus")
-          }
-        }
+    }
+    Divider()
+
+    ForEach(accounts) { account in
+      let noteCount = noteService.getRootNotes(notes: notes, email: account.email).count
+      let hasPlayService = !account.masterToken.isEmpty
+      let hasProfile = !account.profileName.isEmpty
+      let icon = hasPlayService && hasProfile ? "🔑👤" : hasPlayService ? "🔑" : hasProfile ? "👤" : ""
+
+      Text("\(account.email) \(icon)").font(.subheadline).bold()
+      Text("\(noteCount) Notes").font(.subheadline)
+      Button("Delete") {
+        viewModel.selectedAccount = account
+        deleteAccount(account)
       }
-      .alert("Add Account", isPresented: $showingAddAccountOptions) {
-        Button("🔑 Login Play Service") {
+      Divider()
+    }
+
+    Button(action: {}) {
+      Label("Update Keep", systemImage: "arrow.down.circle")
+    }
+    Button(action: {
+      Task { await syncAllAccounts() }
+    }) {
+      Label("Sync All", systemImage: "arrow.trianglehead.clockwise.icloud")
+    }
+    Button(action: {
+      NSApplication.shared.terminate(nil)
+    }) {
+      Label("Quit", systemImage: "xmark.rectangle")
+    }
+
+    .onAppear {
+      loadAccounts()
+
+      if chromeProfileService == nil {
+        chromeProfileService = ChromeProfileService(
+          chromeDriverService: chromeDriverService)
+        chromeProfileService?.onAddSuccess = { profile in
           Task {
-            await handleAddPlayAccount()
+            await handleProfileAdded(profile: profile)
           }
         }
-        Button("👤 Add Chrome Profiles") {
-          Task {
-            await handleAddProfileAccount()
-          }
-        }
-        Button("Cancel", role: .cancel) {}
-      } message: {
-        Text(
-          "Try Login Play Service first. Use Add Chrome Profiles if you have an Enterprise account or encounter issues."
-        )
-      }
-      .alert("⚠️ Error", isPresented: $showingErrorAlert) {
-        Button("OK", role: .cancel) {}
-      } message: {
-        Text(errorMessage)
-      }
-      .onAppear {
-        guard ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" else {
-          return
-        }
-        if chromeProfileService == nil {
-          chromeProfileService = ChromeProfileService(
-            chromeDriverService: chromeDriverService)
-          chromeProfileService?.onAddSuccess = { profile in
-            Task {
-              await handleProfileAdded(profile: profile)
-            }
-          }
-          viewModel.chromeProfileService = chromeProfileService
-          Task {
-            await syncChromeProfiles()
-          }
+        viewModel.chromeProfileService = chromeProfileService
+        Task {
+          await syncChromeProfiles()
         }
       }
-      .onOpenURL { url in handleOpenURL(url) }
+    }
+    .alert("⚠️ Error", isPresented: $showingErrorAlert) {
+      Button("OK", role: .cancel) {}
+    } message: {
+      Text(errorMessage)
+    }
+  }
+
+  private func loadAccounts() {
+    do {
+      accounts = try modelContext.fetch(FetchDescriptor<Account>())
+      notes = try modelContext.fetch(FetchDescriptor<Note>())
+    } catch {
+      accounts = []
+      notes = []
+    }
   }
 
   private func syncChromeProfiles() async {
@@ -129,8 +130,9 @@ struct ContentView: View {
       }
 
       try modelContext.save()
+      loadAccounts()
     } catch {
-      print("Failed to sync Chrome profiles: \(error)")
+      // Silently ignore sync errors
     }
   }
 
@@ -161,6 +163,7 @@ struct ContentView: View {
         email: email, picture: picture, profileName: profileName, masterToken: masterToken)
       modelContext.insert(newAccount)
       try modelContext.save()
+      loadAccounts()
       return newAccount
     }
   }
@@ -190,6 +193,7 @@ struct ContentView: View {
         email: email, oauthToken: oauthToken)
 
       _ = try addOrUpdateAccount(email: email, masterToken: masterToken)
+      loadAccounts()
     } catch {
       errorMessage = error.localizedDescription
       showingErrorAlert = true
@@ -222,67 +226,47 @@ struct ContentView: View {
         profileName: profile.profileName,
         masterToken: profile.masterToken
       )
+      loadAccounts()
     } catch {
       errorMessage = error.localizedDescription
       showingErrorAlert = true
     }
   }
 
-  private func handleOpenURL(_ url: URL) {
-    if url.scheme == "https" {
-      NSWorkspace.shared.open(url)
-      if let fragment = url.fragment, let serverId = fragment.split(separator: "/").last {
-        let serverIdString = String(serverId)
-        Task {
-          do {
-            let note = try modelContext.fetch(
-              FetchDescriptor<Note>(predicate: #Predicate { $0.serverId == serverIdString })
-            ).first
-            if let note = note,
-              let account = accounts.first(where: { $0.email == note.email })
-            {
-              viewModel.selectAccount(
-                account, modelContext: modelContext
-              ) {
-                NSApplication.shared.terminate(nil)
-              }
-            }
-          } catch {
-            NSApplication.shared.terminate(nil)
-          }
+  private func deleteAccount(_ account: Account) {
+    if !account.profileName.isEmpty {
+      if let chromeProfileService = chromeProfileService {
+        try? chromeProfileService.deleteProfile(profileName: account.profileName)
+      }
+    }
+
+    let existingNotes = try? modelContext.fetch(FetchDescriptor<Note>()).filter {
+      $0.email == account.email
+    }
+    if let notes = existingNotes {
+      for note in notes {
+        modelContext.delete(note)
+      }
+    }
+
+    modelContext.delete(account)
+    try? modelContext.save()
+    loadAccounts()
+  }
+
+  private func syncAllAccounts() async {
+    for account in accounts {
+      viewModel.selectedAccount = account
+      do {
+        let googleApiService = GoogleApiService()
+        if !account.masterToken.isEmpty {
+          try await googleApiService.syncNotes(for: account, modelContext: modelContext)
+        } else if !account.profileName.isEmpty {
+          try await chromeProfileService?.syncNotes(for: account, modelContext: modelContext)
         }
+      } catch {
+        // Silently ignore sync errors for individual accounts
       }
     }
   }
-}
-
-#Preview("Empty Accounts") {
-  ContentView()
-    .modelContainer(for: [Account.self, Note.self], inMemory: true)
-}
-
-#Preview("With Accounts") {
-  let container = try! ModelContainer(
-    for: Schema([Account.self, Note.self]),
-    configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]
-  )
-
-  container.mainContext.insert(
-    Account(
-      email: "boy@gmail.com",
-      picture: "https://cdn-icons-png.flaticon.com/128/16683/16683419.png",
-      masterToken: "sample_master_token"
-    )
-  )
-  container.mainContext.insert(
-    Account(
-      email: "girl@gmail.com",
-      picture: "https://cdn-icons-png.flaticon.com/128/16683/16683451.png",
-      profileName: "Profile 1",
-      masterToken: "sample_master_token"
-    )
-  )
-
-  return ContentView()
-    .modelContainer(container)
 }
