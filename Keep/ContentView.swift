@@ -2,6 +2,7 @@ import AppKit
 import SwiftData
 import SwiftUI
 import UserNotifications
+import WidgetKit
 
 struct ContentView: View {
   let modelContainer: ModelContainer
@@ -17,6 +18,7 @@ struct ContentView: View {
   @State private var loadingStates: [String: Bool] = [:]
   @State private var hoveredEmail: String? = nil
   @State private var showDeleteConfirm: Bool = false
+  @State private var syncTimer: Timer? = nil
 
   private var noteService: NoteService { NoteService() }
 
@@ -61,7 +63,7 @@ struct ContentView: View {
       Label("Update Keep", systemImage: "arrow.down.circle")
     }
     Button(action: {
-      Task { await syncAllAccounts() }
+      Task { await syncAllAccounts(notify: true) }
     }) {
       Label("Sync All", systemImage: "arrow.trianglehead.clockwise.icloud")
     }
@@ -83,11 +85,21 @@ struct ContentView: View {
             await handleProfileAdded(profile: profile)
           }
         }
-        // viewModel.chromeProfileService = chromeProfileService
         Task {
           await syncChromeProfiles()
         }
       }
+
+      syncTimer?.invalidate()
+      syncTimer = Timer.scheduledTimer(withTimeInterval: 900, repeats: true) { _ in
+        Task {
+          await syncAllAccounts(notify: false)
+        }
+      }
+    }
+    .onDisappear {
+      syncTimer?.invalidate()
+      syncTimer = nil
     }
   }
 
@@ -267,7 +279,7 @@ struct ContentView: View {
     sendNotification(title: "Account Deleted", body: "\(email) has been deleted")
   }
 
-  private func syncAllAccounts() async {
+  private func syncAllAccounts(notify: Bool = true) async {
     let playAccounts = accounts.filter { !$0.masterToken.isEmpty }
     let profileAccounts = accounts.filter {
       !$0.profileName.isEmpty && $0.masterToken.isEmpty
@@ -278,8 +290,10 @@ struct ContentView: View {
     }
 
     let totalCount = playAccounts.count + profileAccounts.count
-    sendNotification(
-      title: "Sync Started", body: "Syncing \(totalCount) account\(totalCount > 1 ? "s" : "")")
+    if notify {
+      sendNotification(
+        title: "Sync Started", body: "Syncing \(totalCount) account\(totalCount > 1 ? "s" : "")")
+    }
 
     var successCount = 0
     var failCount = 0
@@ -316,9 +330,12 @@ struct ContentView: View {
     }
 
     loadAccounts()
+    WidgetCenter.shared.reloadAllTimelines()
 
-    let title = failCount == 0 ? "Sync Successful" : "Sync Failed"
-    let body = "\(successCount) success, \(failCount) failed"
-    sendNotification(title: title, body: body)
+    if notify {
+      let title = failCount == 0 ? "Sync Successful" : "Sync Failed"
+      let body = "\(successCount) success, \(failCount) failed"
+      sendNotification(title: title, body: body)
+    }
   }
 }
