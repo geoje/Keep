@@ -14,6 +14,7 @@ class ChromeProfileService: ObservableObject {
   }
 
   func startAdd() async throws {
+    await chromeDriverService.deleteAllSessions()
     let sessionId = try await chromeDriverService.launchChrome(
       url: "https://support.google.com/chrome/answer/2364824")
     currentSessionId = sessionId
@@ -42,7 +43,6 @@ class ChromeProfileService: ObservableObject {
           await self.isSessionAlive(sessionId: sessionId)
         else {
           self.stopMonitoring()
-          await self.chromeDriverService.cleanup()
           return
         }
 
@@ -174,9 +174,7 @@ class ChromeProfileService: ObservableObject {
       }
     }
 
-    for sessionId in sessionIds {
-      await chromeDriverService.deleteSession(sessionId)
-    }
+    await chromeDriverService.cleanup()
 
     return errors
   }

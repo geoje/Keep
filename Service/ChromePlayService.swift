@@ -12,6 +12,7 @@ class ChromePlayService: ObservableObject {
   }
 
   func startLogin() async throws {
+    await chromeDriverService.deleteAllSessions()
     let sessionId = try await chromeDriverService.launchChrome(
       url: "https://accounts.google.com/EmbeddedSetup")
     currentSessionId = sessionId
@@ -33,7 +34,6 @@ class ChromePlayService: ObservableObject {
 
         guard let cookies = await self.getCookies(sessionId: sessionId) else {
           self.stopMonitoring()
-          await self.chromeDriverService.cleanup()
           return
         }
 
@@ -44,7 +44,6 @@ class ChromePlayService: ObservableObject {
           {
             guard let email = await self.extractEmail(sessionId: sessionId) else {
               self.stopMonitoring()
-              await self.chromeDriverService.cleanup()
               return
             }
             self.stopMonitoring()

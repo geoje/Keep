@@ -32,7 +32,8 @@ class ChromeDriverService: ObservableObject {
   }
 
   func navigateToURL(sessionId: String, url: String) async throws {
-    try await sendRequest(path: "/session/\(sessionId)/url", method: "POST", body: ["url": url])
+    _ = try await sendRequest(
+      path: "/session/\(sessionId)/url", method: "POST", body: ["url": url])
   }
 
   func getPageSource(sessionId: String) async throws -> String {
@@ -253,7 +254,7 @@ class ChromeDriverService: ObservableObject {
     return value.compactMap { $0["id"] as? String }
   }
 
-  private func deleteAllSessions() async {
+  func deleteAllSessions() async {
     let sessions = await getAllSessions()
     for sessionId in sessions {
       await deleteSession(sessionId)
