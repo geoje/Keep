@@ -8,13 +8,8 @@ struct ContentView: View {
   @StateObject private var viewModel = ContentViewModel()
   @StateObject private var chromeDriverService = ChromeDriverService()
 
-  @State private var showingAddAccountOptions = false
-  @State private var showingErrorAlert = false
-  @State private var errorMessage = ""
   @State private var chromePlayService: ChromePlayService?
   @State private var chromeProfileService: ChromeProfileService?
-  @State private var accounts: [Account] = []
-  @State private var notes: [Note] = []
 
   private var noteService: NoteService { NoteService() }
 
@@ -36,16 +31,20 @@ struct ContentView: View {
     }
     Divider()
 
-    ForEach(accounts) { account in
-      let noteCount = noteService.getRootNotes(notes: notes, email: account.email).count
+    ForEach(viewModel.accounts) { account in
+      let noteCount = noteService.getRootNotes(notes: viewModel.notes, email: account.email).count
       let hasPlayService = !account.masterToken.isEmpty
       let hasProfile = !account.profileName.isEmpty
       let icon = hasPlayService && hasProfile ? "🔑👤" : hasPlayService ? "🔑" : hasProfile ? "👤" : ""
+      let errorMessage = viewModel.errorMessages[account.email]
 
       Text("\(account.email) \(icon)").font(.subheadline).bold()
-      Text("\(noteCount) Notes").font(.subheadline)
+      if let error = errorMessage {
+        Text(error).font(.subheadline).foregroundStyle(.orange)
+      } else {
+        Text("\(noteCount) Notes").font(.subheadline)
+      }
       Button("Delete") {
-        viewModel.selectedAccount = account
         deleteAccount(account)
       }
       Divider()
@@ -82,20 +81,15 @@ struct ContentView: View {
         }
       }
     }
-    .alert("⚠️ Error", isPresented: $showingErrorAlert) {
-      Button("OK", role: .cancel) {}
-    } message: {
-      Text(errorMessage)
-    }
   }
 
   private func loadAccounts() {
     do {
-      accounts = try modelContext.fetch(FetchDescriptor<Account>())
-      notes = try modelContext.fetch(FetchDescriptor<Note>())
+      viewModel.accounts = try modelContext.fetch(FetchDescriptor<Account>())
+      viewModel.notes = try modelContext.fetch(FetchDescriptor<Note>())
     } catch {
-      accounts = []
-      notes = []
+      viewModel.accounts = []
+      viewModel.notes = []
     }
   }
 
@@ -181,8 +175,7 @@ struct ContentView: View {
       }
       try await chromePlayService?.startLogin()
     } catch {
-      errorMessage = error.localizedDescription
-      showingErrorAlert = true
+      // Silently ignore login errors
     }
   }
 
@@ -195,8 +188,7 @@ struct ContentView: View {
       _ = try addOrUpdateAccount(email: email, masterToken: masterToken)
       loadAccounts()
     } catch {
-      errorMessage = error.localizedDescription
-      showingErrorAlert = true
+      // Silently ignore errors
     }
   }
 
@@ -213,8 +205,7 @@ struct ContentView: View {
       }
       try await chromeProfileService?.startAdd()
     } catch {
-      errorMessage = error.localizedDescription
-      showingErrorAlert = true
+      // Silently ignore errors
     }
   }
 
@@ -228,8 +219,7 @@ struct ContentView: View {
       )
       loadAccounts()
     } catch {
-      errorMessage = error.localizedDescription
-      showingErrorAlert = true
+      // Silently ignore errors
     }
   }
 
@@ -255,8 +245,9 @@ struct ContentView: View {
   }
 
   private func syncAllAccounts() async {
-    for account in accounts {
+    for account in viewModel.accounts {
       viewModel.selectedAccount = account
+      viewModel.errorMessages[account.email] = nil
       do {
         let googleApiService = GoogleApiService()
         if !account.masterToken.isEmpty {
@@ -265,7 +256,7 @@ struct ContentView: View {
           try await chromeProfileService?.syncNotes(for: account, modelContext: modelContext)
         }
       } catch {
-        // Silently ignore sync errors for individual accounts
+        viewModel.errorMessages[account.email] = error.localizedDescription
       }
     }
   }

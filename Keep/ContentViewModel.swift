@@ -10,6 +10,8 @@ class ContentViewModel: ObservableObject {
   @Published var hoveredEmail: String?
   @Published var loadingStates: [String: Bool] = [:]
   @Published var errorMessages: [String: String] = [:]
+  @Published var accounts: [Account] = []
+  @Published var notes: [Note] = []
 
   var hasSelectedAccount: Bool {
     selectedAccount != nil
