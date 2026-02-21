@@ -28,7 +28,7 @@ class ChromeDriverService: ObservableObject {
   // MARK: - Session Management
 
   func deleteSession(_ sessionId: String) async {
-    try? await sendRequest(path: "/session/\(sessionId)", method: "DELETE")
+    _ = try? await sendRequest(path: "/session/\(sessionId)", method: "DELETE")
   }
 
   func navigateToURL(sessionId: String, url: String) async throws {

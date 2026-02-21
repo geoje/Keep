@@ -267,13 +267,26 @@ struct ContentView: View {
       !$0.profileName.isEmpty && $0.masterToken.isEmpty
     }
 
+    if playAccounts.isEmpty && profileAccounts.isEmpty {
+      return
+    }
+
+    let totalCount = playAccounts.count + profileAccounts.count
+    sendNotification(
+      title: "Sync Started", body: "Syncing \(totalCount) account\(totalCount > 1 ? "s" : "")")
+
+    var successCount = 0
+    var failCount = 0
+
     let googleApiService = GoogleApiService()
     for account in playAccounts {
       viewModel.errorMessages[account.email] = nil
       do {
         try await googleApiService.syncNotes(for: account, modelContext: modelContext)
+        successCount += 1
       } catch {
         viewModel.errorMessages[account.email] = error.localizedDescription
+        failCount += 1
       }
     }
 
@@ -290,9 +303,16 @@ struct ContentView: View {
 
       for (email, error) in errors {
         viewModel.errorMessages[email] = error.localizedDescription
+        failCount += 1
       }
+
+      successCount += profileAccounts.count - errors.count
     }
 
     loadAccounts()
+
+    let title = failCount == 0 ? "Sync Successful" : "Sync Failed"
+    let body = "Success: \(successCount), Failed: \(failCount)"
+    sendNotification(title: title, body: body)
   }
 }
