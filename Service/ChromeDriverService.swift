@@ -7,7 +7,7 @@ class ChromeDriverService: ObservableObject {
   private var sessionId: String?
   private var cachedChromeVersion: String?
 
-  func launchChrome(url: String, headless: Bool = false, profileDirectory: String = "Default")
+  func launchChrome(url: String = "", headless: Bool = false, profileDirectory: String = "Default")
     async throws
   {
     guard let chromedriverPath = Bundle.main.path(forResource: "chromedriver", ofType: nil)
@@ -26,7 +26,9 @@ class ChromeDriverService: ObservableObject {
       chromePath: chromePath, headless: headless, profileDirectory: profileDirectory)
     self.sessionId = sessionId
 
-    try await navigateToURL(sessionId: sessionId, url: url)
+    if !url.isEmpty {
+      try await navigateToURL(sessionId: sessionId, url: url)
+    }
   }
 
   func getSessionId() -> String? {

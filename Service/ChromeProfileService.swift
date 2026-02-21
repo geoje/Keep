@@ -13,8 +13,7 @@ class ChromeProfileService: ObservableObject {
   }
 
   func startAdd() async throws {
-    try await chromeDriverService.launchChrome(
-      url: "https://accounts.google.com/AddSession", headless: false)
+    try await chromeDriverService.launchChrome(headless: false)
     startMonitoring()
   }
 
@@ -53,7 +52,6 @@ class ChromeProfileService: ObservableObject {
           {
             self.stopMonitoring()
             self.onAddSuccess?(newProfile)
-            await self.chromeDriverService.cleanup()
             return
           }
         }

@@ -189,8 +189,7 @@ struct ContentView: View {
       let masterToken = try await googleApiService.fetchMasterToken(
         email: email, oauthToken: oauthToken)
 
-      let account = try addOrUpdateAccount(email: email, masterToken: masterToken)
-      viewModel.selectAccount(account, modelContext: modelContext)
+      _ = try addOrUpdateAccount(email: email, masterToken: masterToken)
     } catch {
       errorMessage = error.localizedDescription
       showingErrorAlert = true
@@ -217,13 +216,12 @@ struct ContentView: View {
 
   private func handleProfileAdded(profile: Account) async {
     do {
-      let account = try addOrUpdateAccount(
+      try addOrUpdateAccount(
         email: profile.email,
         picture: profile.picture,
         profileName: profile.profileName,
         masterToken: profile.masterToken
       )
-      viewModel.selectAccount(account, modelContext: modelContext)
     } catch {
       errorMessage = error.localizedDescription
       showingErrorAlert = true
