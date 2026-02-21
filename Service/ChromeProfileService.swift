@@ -2,7 +2,6 @@ import Combine
 import Foundation
 import SwiftData
 
-@MainActor
 class ChromeProfileService: ObservableObject {
   private let chromeDriverService: ChromeDriverService
   private var monitorTask: Task<Void, Never>?

@@ -97,13 +97,13 @@ struct NoteWidgetEntryView: View {
     ZStack {
       if let note = entry.note {
         noteContentView(for: note)
-          .widgetURL(URL(string: "https://keep.google.com/u/0/#\(note.type)/\(note.serverId)"))
+          .widgetURL(URL(string: "https://keep.google.com/#\(note.type)/\(note.serverId)"))
       } else {
         Text("No selected note")
           .font(.body)
           .foregroundColor(.secondary)
           .frame(maxWidth: .infinity, maxHeight: .infinity)
-          .widgetURL(URL(string: "https://keep.google.com/u/0/"))
+          .widgetURL(URL(string: "https://keep.google.com"))
       }
     }
     .containerBackground(for: .widget) { backgroundColor(for: entry.note?.color ?? "") }

@@ -62,6 +62,8 @@
 		851957292F491A1500DFA804 /* Exceptions for "Service" folder in "NoteWidgetsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				ChromeDriverService.swift,
+				ChromeProfileService.swift,
 				GoogleApiService.swift,
 				NoteService.swift,
 			);

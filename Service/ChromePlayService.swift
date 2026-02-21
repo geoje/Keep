@@ -1,7 +1,6 @@
 import Combine
 import Foundation
 
-@MainActor
 class ChromePlayService: ObservableObject {
   private let chromeDriverService: ChromeDriverService
   private var monitorTask: Task<Void, Never>?

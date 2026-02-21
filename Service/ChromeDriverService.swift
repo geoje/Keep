@@ -1,7 +1,6 @@
 import Combine
 import Foundation
 
-@MainActor
 class ChromeDriverService: ObservableObject {
   private let driverPort = 9515
   private var chromedriverProcess: Process?

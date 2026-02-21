@@ -6,11 +6,19 @@ actor NoteModelActor: ModelActor {
   let modelContainer: ModelContainer
   let modelContext: ModelContext
   let modelExecutor: any ModelExecutor
+  let googleApiService: GoogleApiService
+  let chromeDriverService: ChromeDriverService
+  let chromeProfileService: ChromeProfileService
+  let noteService: NoteService
 
   init(modelContainer: ModelContainer) {
     self.modelContainer = modelContainer
     self.modelContext = ModelContext(modelContainer)
     self.modelExecutor = DefaultSerialModelExecutor(modelContext: modelContext)
+    self.googleApiService = GoogleApiService()
+    self.chromeDriverService = ChromeDriverService()
+    self.chromeProfileService = ChromeProfileService(chromeDriverService: self.chromeDriverService)
+    self.noteService = NoteService()
   }
 
   func fetchNotes() throws -> [NoteEntity] {
@@ -18,7 +26,6 @@ actor NoteModelActor: ModelActor {
     let noteDescriptor = FetchDescriptor<Note>()
     let accounts = try modelContext.fetch(accountDescriptor)
     let allNotes = try modelContext.fetch(noteDescriptor)
-    let noteService = NoteService()
 
     var entities: [NoteEntity] = []
     for account in accounts {
@@ -51,8 +58,11 @@ actor NoteModelActor: ModelActor {
       predicate: #Predicate { $0.email == email }
     )
     if let account = try modelContext.fetch(accountDescriptor).first {
-      let googleApiService = GoogleApiService()
-      try await googleApiService.syncNotes(for: account, modelContext: modelContext)
+      if !account.masterToken.isEmpty {
+        try await googleApiService.syncNotes(for: account, modelContext: modelContext)
+      } else if !account.profileName.isEmpty {
+        try await chromeProfileService.syncNotes(for: account, modelContext: modelContext)
+      }
     }
   }
 }
