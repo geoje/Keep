@@ -4,6 +4,7 @@ import Foundation
 class ChromePlayService: ObservableObject {
   private let chromeDriverService: ChromeDriverService
   private var monitorTask: Task<Void, Never>?
+  private var currentSessionId: String?
   var onLoginSuccess: ((String, String) -> Void)?
 
   init(chromeDriverService: ChromeDriverService) {
@@ -11,7 +12,9 @@ class ChromePlayService: ObservableObject {
   }
 
   func startLogin() async throws {
-    try await chromeDriverService.launchChrome(url: "https://accounts.google.com/EmbeddedSetup")
+    let sessionId = try await chromeDriverService.launchChrome(
+      url: "https://accounts.google.com/EmbeddedSetup")
+    currentSessionId = sessionId
     startMonitoring()
   }
 
@@ -23,7 +26,7 @@ class ChromePlayService: ObservableObject {
       while !Task.isCancelled {
         try? await Task.sleep(for: .seconds(1))
 
-        guard let sessionId = self.chromeDriverService.getSessionId() else {
+        guard let sessionId = self.currentSessionId else {
           self.stopMonitoring()
           return
         }
@@ -57,6 +60,7 @@ class ChromePlayService: ObservableObject {
   private func stopMonitoring() {
     monitorTask?.cancel()
     monitorTask = nil
+    currentSessionId = nil
   }
 
   private func getCookies(sessionId: String) async -> [[String: Any]]? {

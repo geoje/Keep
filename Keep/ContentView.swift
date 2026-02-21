@@ -1,6 +1,7 @@
 import AppKit
 import SwiftData
 import SwiftUI
+import UserNotifications
 
 struct ContentView: View {
   let modelContainer: ModelContainer
@@ -65,6 +66,7 @@ struct ContentView: View {
     }
 
     .onAppear {
+      requestNotificationPermission()
       loadAccounts()
 
       if chromeProfileService == nil {
@@ -105,7 +107,7 @@ struct ContentView: View {
       )
 
       for profile in currentProfiles {
-        _ = try addOrUpdateAccount(
+        try addOrUpdateAccount(
           email: profile.email,
           picture: profile.picture,
           profileName: profile.profileName,
@@ -125,9 +127,7 @@ struct ContentView: View {
 
       try modelContext.save()
       loadAccounts()
-    } catch {
-      // Silently ignore sync errors
-    }
+    } catch {}
   }
 
   private func addOrUpdateAccount(
@@ -135,7 +135,7 @@ struct ContentView: View {
     picture: String = "",
     profileName: String = "",
     masterToken: String = ""
-  ) throws -> Account {
+  ) throws {
     let existingAccounts = try modelContext.fetch(
       FetchDescriptor<Account>(predicate: #Predicate { $0.email == email })
     )
@@ -150,16 +150,14 @@ struct ContentView: View {
       if !masterToken.isEmpty {
         existingAccount.masterToken = masterToken
       }
-      try modelContext.save()
-      return existingAccount
     } else {
       let newAccount = Account(
         email: email, picture: picture, profileName: profileName, masterToken: masterToken)
       modelContext.insert(newAccount)
-      try modelContext.save()
-      loadAccounts()
-      return newAccount
     }
+
+    try modelContext.save()
+    loadAccounts()
   }
 
   private func handleAddPlayAccount() async {
@@ -174,9 +172,7 @@ struct ContentView: View {
         }
       }
       try await chromePlayService?.startLogin()
-    } catch {
-      // Silently ignore login errors
-    }
+    } catch {}
   }
 
   private func handlePlayLoginSuccess(email: String, oauthToken: String) async {
@@ -185,11 +181,10 @@ struct ContentView: View {
       let masterToken = try await googleApiService.fetchMasterToken(
         email: email, oauthToken: oauthToken)
 
-      _ = try addOrUpdateAccount(email: email, masterToken: masterToken)
+      try addOrUpdateAccount(email: email, masterToken: masterToken)
       loadAccounts()
-    } catch {
-      // Silently ignore errors
-    }
+      sendNotification(title: "Account Added", body: "\(email) has been added")
+    } catch {}
   }
 
   private func handleAddProfileAccount() async {
@@ -204,9 +199,7 @@ struct ContentView: View {
         }
       }
       try await chromeProfileService?.startAdd()
-    } catch {
-      // Silently ignore errors
-    }
+    } catch {}
   }
 
   private func handleProfileAdded(profile: Account) async {
@@ -218,12 +211,35 @@ struct ContentView: View {
         masterToken: profile.masterToken
       )
       loadAccounts()
-    } catch {
-      // Silently ignore errors
+      sendNotification(title: "Account Added", body: "\(profile.email) has been added")
+    } catch {}
+  }
+
+  private func requestNotificationPermission() {
+    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) {
+      granted, error in
+    }
+  }
+
+  private func sendNotification(title: String, body: String) {
+    let content = UNMutableNotificationContent()
+    content.title = title
+    content.body = body
+    content.sound = .default
+
+    let request = UNNotificationRequest(
+      identifier: UUID().uuidString,
+      content: content,
+      trigger: nil
+    )
+
+    UNUserNotificationCenter.current().add(request) { error in
     }
   }
 
   private func deleteAccount(_ account: Account) {
+    let email = account.email
+
     if !account.profileName.isEmpty {
       if let chromeProfileService = chromeProfileService {
         try? chromeProfileService.deleteProfile(profileName: account.profileName)
@@ -242,22 +258,41 @@ struct ContentView: View {
     modelContext.delete(account)
     try? modelContext.save()
     loadAccounts()
+    sendNotification(title: "Account Deleted", body: "\(email) has been deleted")
   }
 
   private func syncAllAccounts() async {
-    for account in viewModel.accounts {
-      viewModel.selectedAccount = account
+    let playAccounts = viewModel.accounts.filter { !$0.masterToken.isEmpty }
+    let profileAccounts = viewModel.accounts.filter {
+      !$0.profileName.isEmpty && $0.masterToken.isEmpty
+    }
+
+    let googleApiService = GoogleApiService()
+    for account in playAccounts {
       viewModel.errorMessages[account.email] = nil
       do {
-        let googleApiService = GoogleApiService()
-        if !account.masterToken.isEmpty {
-          try await googleApiService.syncNotes(for: account, modelContext: modelContext)
-        } else if !account.profileName.isEmpty {
-          try await chromeProfileService?.syncNotes(for: account, modelContext: modelContext)
-        }
+        try await googleApiService.syncNotes(for: account, modelContext: modelContext)
       } catch {
         viewModel.errorMessages[account.email] = error.localizedDescription
       }
     }
+
+    if !profileAccounts.isEmpty {
+      for account in profileAccounts {
+        viewModel.errorMessages[account.email] = nil
+      }
+
+      let errors =
+        await chromeProfileService?.syncMultipleAccounts(
+          profileAccounts,
+          modelContext: modelContext
+        ) ?? [:]
+
+      for (email, error) in errors {
+        viewModel.errorMessages[email] = error.localizedDescription
+      }
+    }
+
+    loadAccounts()
   }
 }

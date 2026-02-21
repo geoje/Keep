@@ -38,7 +38,12 @@ class ContentViewModel: ObservableObject {
           if !account.masterToken.isEmpty {
             try await googleApiService.syncNotes(for: account, modelContext: modelContext)
           } else if !account.profileName.isEmpty {
-            try await chromeProfileService?.syncNotes(for: account, modelContext: modelContext)
+            let errors =
+              await chromeProfileService?.syncMultipleAccounts(
+                [account], modelContext: modelContext) ?? [:]
+            if let error = errors[account.email] {
+              throw error
+            }
           }
 
           WidgetCenter.shared.reloadAllTimelines()

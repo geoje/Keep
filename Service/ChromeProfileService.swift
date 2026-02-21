@@ -6,6 +6,7 @@ class ChromeProfileService: ObservableObject {
   private let chromeDriverService: ChromeDriverService
   private var monitorTask: Task<Void, Never>?
   private var initialProfiles: Set<String> = []
+  private var currentSessionId: String?
   var onAddSuccess: ((Account) -> Void)?
 
   init(chromeDriverService: ChromeDriverService) {
@@ -13,7 +14,9 @@ class ChromeProfileService: ObservableObject {
   }
 
   func startAdd() async throws {
-    try await chromeDriverService.launchChrome(headless: false)
+    let sessionId = try await chromeDriverService.launchChrome(
+      url: "https://support.google.com/chrome/answer/2364824")
+    currentSessionId = sessionId
     startMonitoring()
   }
 
@@ -35,7 +38,7 @@ class ChromeProfileService: ObservableObject {
       while !Task.isCancelled {
         try? await Task.sleep(for: .seconds(1))
 
-        guard let sessionId = self.chromeDriverService.getSessionId(),
+        guard let sessionId = self.currentSessionId,
           await self.isSessionAlive(sessionId: sessionId)
         else {
           self.stopMonitoring()
@@ -62,6 +65,7 @@ class ChromeProfileService: ObservableObject {
   private func stopMonitoring() {
     monitorTask?.cancel()
     monitorTask = nil
+    currentSessionId = nil
   }
 
   private func isExplicitSignIn(profileName: String) -> Bool {
@@ -138,20 +142,54 @@ class ChromeProfileService: ObservableObject {
     return Account(email: email, picture: pictureUrl, profileName: profileName)
   }
 
-  func syncNotes(for account: Account, modelContext: ModelContext) async throws {
-    try await chromeDriverService.launchChrome(
-      url: "https://keep.google.com",
-      headless: true,
-      profileDirectory: account.profileName
-    )
+  func syncMultipleAccounts(_ accounts: [Account], modelContext: ModelContext) async -> [String:
+    Error]
+  {
+    var errors: [String: Error] = [:]
+    var sessionIds: [String] = []
 
-    let html = try await chromeDriverService.getPageSource()
+    guard !accounts.isEmpty else { return errors }
+
+    do {
+      try await chromeDriverService.startChromeDriver()
+
+      for account in accounts {
+        do {
+          let sessionId = try await chromeDriverService.launchChrome(
+            url: "https://keep.google.com",
+            headless: true,
+            profileDirectory: account.profileName
+          )
+          sessionIds.append(sessionId)
+
+          try await syncNotesForSession(
+            sessionId: sessionId, account: account, modelContext: modelContext)
+        } catch {
+          errors[account.email] = error
+        }
+      }
+    } catch {
+      for account in accounts {
+        errors[account.email] = error
+      }
+    }
+
+    for sessionId in sessionIds {
+      await chromeDriverService.deleteSession(sessionId)
+    }
+
+    return errors
+  }
+
+  private func syncNotesForSession(sessionId: String, account: Account, modelContext: ModelContext)
+    async throws
+  {
+    let html = try await chromeDriverService.getPageSource(sessionId: sessionId)
 
     guard let jsonString = extractLoadChunkJSON(from: html),
       let jsonData = unescapeJSONString(jsonString).data(using: .utf8),
       let notesArray = try JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]]
     else {
-      await chromeDriverService.cleanup()
       throw ChromeProfileError.noteParsingFailed
     }
 
@@ -167,7 +205,6 @@ class ChromeProfileService: ObservableObject {
     }
 
     try modelContext.save()
-    await chromeDriverService.cleanup()
   }
 
   private func extractLoadChunkJSON(from html: String) -> String? {
