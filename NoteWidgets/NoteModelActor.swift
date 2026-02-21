@@ -7,8 +7,6 @@ actor NoteModelActor: ModelActor {
   let modelContext: ModelContext
   let modelExecutor: any ModelExecutor
   let googleApiService: GoogleApiService
-  let chromeDriverService: ChromeDriverService
-  let chromeProfileService: ChromeProfileService
   let noteService: NoteService
 
   init(modelContainer: ModelContainer) {
@@ -16,8 +14,6 @@ actor NoteModelActor: ModelActor {
     self.modelContext = ModelContext(modelContainer)
     self.modelExecutor = DefaultSerialModelExecutor(modelContext: modelContext)
     self.googleApiService = GoogleApiService()
-    self.chromeDriverService = ChromeDriverService()
-    self.chromeProfileService = ChromeProfileService(chromeDriverService: self.chromeDriverService)
     self.noteService = NoteService()
   }
 
@@ -60,8 +56,6 @@ actor NoteModelActor: ModelActor {
     if let account = try modelContext.fetch(accountDescriptor).first {
       if !account.masterToken.isEmpty {
         try await googleApiService.syncNotes(for: account, modelContext: modelContext)
-      } else if !account.profileName.isEmpty {
-        try await chromeProfileService.syncNotes(for: account, modelContext: modelContext)
       }
     }
   }

@@ -12,17 +12,21 @@ extension ModelContainer {
       fatalError("Bundle identifier not found")
     }
 
+    let baseBundleIdentifier =
+      bundleIdentifier
+      .components(separatedBy: ".")
+      .prefix(3)
+      .joined(separator: ".")
+
     let fileManager = FileManager.default
     guard
-      let appSupport = fileManager.urls(
-        for: .applicationSupportDirectory,
-        in: .userDomainMask
-      ).first
+      let containerURL = fileManager.containerURL(
+        forSecurityApplicationGroupIdentifier: "group.\(baseBundleIdentifier)")
     else {
-      fatalError("Application Support directory not found")
+      fatalError("App Group container not found")
     }
 
-    let dataDirectory = appSupport.appendingPathComponent(bundleIdentifier)
+    let dataDirectory = containerURL
     try? fileManager.createDirectory(at: dataDirectory, withIntermediateDirectories: true)
 
     let url = dataDirectory.appendingPathComponent("default.sqlite")
