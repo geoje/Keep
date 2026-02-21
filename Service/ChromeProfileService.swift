@@ -147,6 +147,64 @@ class ChromeProfileService: ObservableObject {
       headless: true,
       profileDirectory: account.profileName
     )
+
+    let html = try await chromeDriverService.getPageSource()
+
+    guard let jsonString = extractLoadChunkJSON(from: html),
+      let jsonData = unescapeJSONString(jsonString).data(using: .utf8),
+      let notesArray = try JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]]
+    else {
+      await chromeDriverService.cleanup()
+      throw ChromeProfileError.noteParsingFailed
+    }
+
+    let accountEmail = account.email
+    let existingNotes = try modelContext.fetch(
+      FetchDescriptor<Note>(predicate: #Predicate { $0.email == accountEmail })
+    )
+    existingNotes.forEach { modelContext.delete($0) }
+
+    for noteDict in notesArray {
+      let note = try Note.from(dict: noteDict, email: accountEmail)
+      modelContext.insert(note)
+    }
+
+    try modelContext.save()
+    await chromeDriverService.cleanup()
+  }
+
+  private func extractLoadChunkJSON(from html: String) -> String? {
+    let pattern = #"loadChunk\(JSON\.parse\('([^']+)'\), \".*\"\)"#
+    guard let regex = try? NSRegularExpression(pattern: pattern),
+      let match = regex.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
+      let range = Range(match.range(at: 1), in: html)
+    else {
+      return nil
+    }
+
+    let extracted = String(html[range])
+    return extracted
+  }
+
+  private func unescapeJSONString(_ string: String) -> String {
+    var result = string
+
+    let hexPattern = #"\\x([0-9a-fA-F]{2})"#
+    if let hexRegex = try? NSRegularExpression(pattern: hexPattern) {
+      let matches = hexRegex.matches(in: result, range: NSRange(result.startIndex..., in: result))
+      for match in matches.reversed() {
+        guard let range = Range(match.range, in: result),
+          let hexRange = Range(match.range(at: 1), in: result),
+          let value = UInt8(result[hexRange], radix: 16)
+        else { continue }
+
+        let char = String(UnicodeScalar(value))
+        result.replaceSubrange(range, with: char)
+      }
+    }
+    result = result.replacingOccurrences(of: "\\\\", with: "\\")
+
+    return result
   }
 
   func deleteProfile(profileName: String) throws {
@@ -197,6 +255,7 @@ class ChromeProfileService: ObservableObject {
 enum ChromeProfileError: LocalizedError {
   case chromeNotFound
   case dataDirectoryNotFound
+  case noteParsingFailed
 
   var errorDescription: String? {
     switch self {
@@ -204,6 +263,8 @@ enum ChromeProfileError: LocalizedError {
       return "Chrome for Testing not found"
     case .dataDirectoryNotFound:
       return "Could not create Chrome data directory"
+    case .noteParsingFailed:
+      return "Failed to parse notes from Keep page"
     }
   }
 }

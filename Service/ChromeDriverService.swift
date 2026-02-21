@@ -188,6 +188,25 @@ class ChromeDriverService: ObservableObject {
     _ = try await URLSession.shared.data(for: request)
   }
 
+  func getPageSource() async throws -> String {
+    guard let sessionId = sessionId else {
+      throw ChromeDriverError.sessionCreationFailed
+    }
+
+    let url = URL(string: "http://localhost:\(driverPort)/session/\(sessionId)/source")!
+    var request = URLRequest(url: url)
+    request.httpMethod = "GET"
+
+    let (data, _) = try await URLSession.shared.data(for: request)
+    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+      let value = json["value"] as? String
+    else {
+      throw ChromeDriverError.sessionCreationFailed
+    }
+
+    return value
+  }
+
   private func checkPortInUse() async -> Bool {
     let statusURL = URL(string: "http://localhost:\(driverPort)/status")!
     if let (_, response) = try? await URLSession.shared.data(from: statusURL),
