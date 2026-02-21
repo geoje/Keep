@@ -6,11 +6,17 @@ import UserNotifications
 struct ContentView: View {
   let modelContainer: ModelContainer
 
-  @StateObject private var viewModel = ContentViewModel()
   @StateObject private var chromeDriverService = ChromeDriverService()
 
   @State private var chromePlayService: ChromePlayService?
   @State private var chromeProfileService: ChromeProfileService?
+
+  @State private var accounts: [Account] = []
+  @State private var notes: [Note] = []
+  @State private var errorMessages: [String: String] = [:]
+  @State private var loadingStates: [String: Bool] = [:]
+  @State private var hoveredEmail: String? = nil
+  @State private var showDeleteConfirm: Bool = false
 
   private var noteService: NoteService { NoteService() }
 
@@ -32,12 +38,12 @@ struct ContentView: View {
     }
     Divider()
 
-    ForEach(viewModel.accounts) { account in
-      let noteCount = noteService.getRootNotes(notes: viewModel.notes, email: account.email).count
+    ForEach(accounts) { account in
+      let noteCount = noteService.getRootNotes(notes: notes, email: account.email).count
       let hasPlayService = !account.masterToken.isEmpty
       let hasProfile = !account.profileName.isEmpty
       let icon = hasPlayService && hasProfile ? "🔑👤" : hasPlayService ? "🔑" : hasProfile ? "👤" : ""
-      let errorMessage = viewModel.errorMessages[account.email]
+      let errorMessage = errorMessages[account.email]
 
       Text("\(account.email) \(icon)").font(.subheadline).bold()
       if let error = errorMessage {
@@ -77,7 +83,7 @@ struct ContentView: View {
             await handleProfileAdded(profile: profile)
           }
         }
-        viewModel.chromeProfileService = chromeProfileService
+        // viewModel.chromeProfileService = chromeProfileService
         Task {
           await syncChromeProfiles()
         }
@@ -87,11 +93,11 @@ struct ContentView: View {
 
   private func loadAccounts() {
     do {
-      viewModel.accounts = try modelContext.fetch(FetchDescriptor<Account>())
-      viewModel.notes = try modelContext.fetch(FetchDescriptor<Note>())
+      accounts = try modelContext.fetch(FetchDescriptor<Account>())
+      notes = try modelContext.fetch(FetchDescriptor<Note>())
     } catch {
-      viewModel.accounts = []
-      viewModel.notes = []
+      accounts = []
+      notes = []
     }
   }
 
@@ -262,8 +268,8 @@ struct ContentView: View {
   }
 
   private func syncAllAccounts() async {
-    let playAccounts = viewModel.accounts.filter { !$0.masterToken.isEmpty }
-    let profileAccounts = viewModel.accounts.filter {
+    let playAccounts = accounts.filter { !$0.masterToken.isEmpty }
+    let profileAccounts = accounts.filter {
       !$0.profileName.isEmpty && $0.masterToken.isEmpty
     }
 
@@ -280,19 +286,19 @@ struct ContentView: View {
 
     let googleApiService = GoogleApiService()
     for account in playAccounts {
-      viewModel.errorMessages[account.email] = nil
+      errorMessages[account.email] = nil
       do {
         try await googleApiService.syncNotes(for: account, modelContext: modelContext)
         successCount += 1
       } catch {
-        viewModel.errorMessages[account.email] = error.localizedDescription
+        errorMessages[account.email] = error.localizedDescription
         failCount += 1
       }
     }
 
     if !profileAccounts.isEmpty {
       for account in profileAccounts {
-        viewModel.errorMessages[account.email] = nil
+        errorMessages[account.email] = nil
       }
 
       let errors =
@@ -302,7 +308,7 @@ struct ContentView: View {
         ) ?? [:]
 
       for (email, error) in errors {
-        viewModel.errorMessages[email] = error.localizedDescription
+        errorMessages[email] = error.localizedDescription
         failCount += 1
       }
 
@@ -312,7 +318,7 @@ struct ContentView: View {
     loadAccounts()
 
     let title = failCount == 0 ? "Sync Successful" : "Sync Failed"
-    let body = "Success: \(successCount), Failed: \(failCount)"
+    let body = "\(successCount) success, \(failCount) failed"
     sendNotification(title: title, body: body)
   }
 }
