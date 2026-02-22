@@ -16,6 +16,8 @@ final class Note {
   var color: String = ""
   var sortValue: String = ""
   var checked: Bool = false
+  var indexableText: String = ""
+  var checkedCheckboxesCount: String = ""
 
   init(
     email: String = "",
@@ -30,7 +32,9 @@ final class Note {
     isArchived: Bool = false,
     color: String = "",
     sortValue: String = "",
-    checked: Bool = false
+    checked: Bool = false,
+    indexableText: String = "",
+    checkedCheckboxesCount: String = ""
   ) {
     self.email = email
     self.id = id
@@ -45,15 +49,13 @@ final class Note {
     self.color = color
     self.sortValue = sortValue
     self.checked = checked
+    self.indexableText = indexableText
+    self.checkedCheckboxesCount = checkedCheckboxesCount
   }
 
   static func from(dict: [String: Any], email: String) throws -> Note {
     let timestampsDict = (dict["timestamps"] as? [String: Any]) ?? [:]
-
-    let dateFormatter = ISO8601DateFormatter()
-    dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    let trashedString = timestampsDict["trashed"] as? String
-    let trashed = trashedString ?? ""
+    let previewDataDict = (dict["previewData"] as? [String: Any]) ?? [:]
 
     return Note(
       email: email,
@@ -62,13 +64,15 @@ final class Note {
       kind: dict["kind"] as? String ?? "",
       parentId: dict["parentId"] as? String ?? "",
       type: dict["type"] as? String ?? "",
-      trashed: trashed,
+      trashed: timestampsDict["trashed"] as? String ?? "",
       title: dict["title"] as? String ?? "",
       text: dict["text"] as? String ?? "",
       isArchived: dict["isArchived"] as? Bool ?? false,
       color: dict["color"] as? String ?? "",
       sortValue: dict["sortValue"] as? String ?? "",
-      checked: dict["checked"] as? Bool ?? false
+      checked: dict["checked"] as? Bool ?? false,
+      indexableText: dict["indexableText"] as? String ?? "",
+      checkedCheckboxesCount: previewDataDict["checkedCheckboxesCount"] as? String ?? ""
     )
   }
 }

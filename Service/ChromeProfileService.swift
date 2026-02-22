@@ -186,7 +186,7 @@ class ChromeProfileService: ObservableObject {
 
     guard let jsonString = extractLoadChunkJSON(from: html),
       let jsonData = unescapeJSONString(jsonString).data(using: .utf8),
-      let notesArray = try JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]]
+      let rootNoteDicts = try JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]]
     else {
       throw ChromeProfileError.noteParsingFailed
     }
@@ -197,9 +197,9 @@ class ChromeProfileService: ObservableObject {
     )
     existingNotes.forEach { modelContext.delete($0) }
 
-    for noteDict in notesArray {
-      let note = try Note.from(dict: noteDict, email: accountEmail)
-      modelContext.insert(note)
+    for rootNoteDict in rootNoteDicts {
+      let rootNote = try Note.from(dict: rootNoteDict, email: accountEmail)
+      modelContext.insert(rootNote)
     }
 
     try modelContext.save()
