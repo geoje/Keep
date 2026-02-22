@@ -75,4 +75,24 @@ final class Note {
       checkedCheckboxesCount: previewDataDict["checkedCheckboxesCount"] as? String ?? ""
     )
   }
+
+  func toDictionary() -> [String: Any] {
+    return [
+      "email": email,
+      "id": id,
+      "serverId": serverId,
+      "kind": kind,
+      "parentId": parentId,
+      "type": type,
+      "trashed": trashed,
+      "title": title,
+      "text": text,
+      "isArchived": isArchived,
+      "color": color,
+      "sortValue": sortValue,
+      "checked": checked,
+      "indexableText": indexableText,
+      "checkedCheckboxesCount": checkedCheckboxesCount,
+    ]
+  }
 }
