@@ -52,7 +52,11 @@ struct ContentView: View {
       Divider()
     }
 
-    Button(action: {}) {
+    Button(action: {
+      if let url = URL(string: "https://github.com/geoje/Keep/releases") {
+        NSWorkspace.shared.open(url)
+      }
+    }) {
       Label("Update Keep", systemImage: "arrow.down.circle")
     }
     Button(action: {
