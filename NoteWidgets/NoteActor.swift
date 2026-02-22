@@ -1,28 +1,18 @@
 import AppIntents
-import SwiftData
 import WidgetKit
 
-actor NoteActor: ModelActor {
-  let modelContainer: ModelContainer
-  let modelContext: ModelContext
-  let modelExecutor: ModelExecutor
+actor NoteActor {
   let noteService = NoteService()
+  let apiClient = LocalApiClient.shared
 
-  init(modelContainer: ModelContainer) {
-    self.modelContainer = modelContainer
-    self.modelContext = ModelContext(modelContainer)
-    self.modelExecutor = DefaultSerialModelExecutor(modelContext: modelContext)
-  }
+  init() {}
 
-  func fetchNotes() throws -> [NoteEntity] {
-    let accountDescriptor = FetchDescriptor<Account>()
-    let noteDescriptor = FetchDescriptor<Note>()
-    let accounts = try modelContext.fetch(accountDescriptor)
-    let notes = try modelContext.fetch(noteDescriptor)
-
+  func fetchNotes() async throws -> [NoteEntity] {
+    let notes = try await apiClient.fetchNotes()
+    let emails = Set(notes.map { $0.email })
     var entities: [NoteEntity] = []
-    for account in accounts {
-      let rootNotes = noteService.getRootNotes(notes: notes, email: account.email)
+    for email in emails {
+      let rootNotes = noteService.getRootNotes(notes: notes, email: email)
       entities.append(
         contentsOf: rootNotes.map { rootNote in
           if !rootNote.checkedCheckboxesCount.isEmpty {
@@ -30,8 +20,7 @@ actor NoteActor: ModelActor {
           } else {
             return buildEntityWithChildren(note: rootNote, notes: notes)
           }
-        }
-      )
+        })
     }
     return entities
   }
@@ -64,7 +53,6 @@ actor NoteActor: ModelActor {
       type: rootNote.type,
       serverId: rootNote.serverId
     )
-
   }
 
   private func buildEntityWithChildren(note: Note, notes: [Note]) -> NoteEntity {
