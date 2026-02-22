@@ -60,7 +60,6 @@
 		851957292F491A1500DFA804 /* Exceptions for "Service" folder in "NoteWidgetsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				GoogleApiService.swift,
 				NoteService.swift,
 			);
 			target = 85C16FF02F2E60550030AABC /* NoteWidgetsExtension */;
