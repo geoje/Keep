@@ -1,19 +1,7 @@
 import AppIntents
 import WidgetKit
 
-extension String {
-  func truncated(to length: Int) -> String {
-    if self.count <= length {
-      return self
-    } else {
-      return String(self.prefix(length - 3)) + "..."
-    }
-  }
-}
-
 struct NoteEntity: AppEntity {
-  typealias ID = String
-
   let id: String
   let email: String
   let color: String
@@ -23,6 +11,12 @@ struct NoteEntity: AppEntity {
   let checkedItems: [String]
   let type: String
   let serverId: String
+
+  typealias ID = String
+  static let sampleEntity = NoteEntity(
+    id: "", email: "", title: "Sample Note",
+    text: "This is a sample note for the widget preview"
+  )
 
   init(
     id: String, email: String, color: String = "", title: String = "", text: String = "",
@@ -40,14 +34,29 @@ struct NoteEntity: AppEntity {
     self.serverId = serverId
   }
 
+  static var defaultQuery: NoteQuery { NoteQuery() }
   static var typeDisplayRepresentation: TypeDisplayRepresentation = "Note"
 
   var displayRepresentation: DisplayRepresentation {
-    if email.isEmpty {
-      let title = LocalizedStringResource(stringLiteral: "--- \(id) ---")
-      return DisplayRepresentation(title: title)
-    }
+    DisplayRepresentation(
+      title: buildTitle(),
+      subtitle: buildSubtitle(),
+      image: DisplayRepresentation.Image(systemName: "document")
+    )
+  }
 
+  private func buildTitle() -> LocalizedStringResource {
+    if email.isEmpty {
+      return LocalizedStringResource(stringLiteral: "--- \(id) ---")
+    }
+    return LocalizedStringResource(
+      stringLiteral: (title.isEmpty ? "Untitled" : title).truncated(to: 30))
+  }
+
+  private func buildSubtitle() -> LocalizedStringResource {
+    if email.isEmpty {
+      return LocalizedStringResource(stringLiteral: "")
+    }
     let subtitle: String
     if !uncheckedItems.isEmpty || !checkedItems.isEmpty {
       var parts: [String] = []
@@ -75,14 +84,16 @@ struct NoteEntity: AppEntity {
         subtitle = firstTwo + "\n+ \(extraLines) \(lineWord)"
       }
     }
-    return DisplayRepresentation(
-      title: LocalizedStringResource(
-        stringLiteral: (title.isEmpty ? "Untitled" : title).truncated(to: 30)),
-      subtitle: LocalizedStringResource(stringLiteral: subtitle),
-      image: DisplayRepresentation.Image(systemName: "document"))
+    return LocalizedStringResource(stringLiteral: subtitle)
   }
+}
 
-  static var defaultQuery: NoteEntitiesProvider {
-    NoteEntitiesProvider()
+extension String {
+  func truncated(to length: Int) -> String {
+    if self.count <= length {
+      return self
+    } else {
+      return String(self.prefix(length - 3)) + "..."
+    }
   }
 }

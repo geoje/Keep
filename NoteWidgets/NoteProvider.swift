@@ -5,44 +5,42 @@ import WidgetKit
 struct NoteProvider: AppIntentTimelineProvider {
   func placeholder(in context: Context) -> NoteEntry {
     return NoteEntry(
-      date: Date(), configuration: NoteAppIntent(),
-      note: NoteEntity(
-        id: "", email: "", title: "Sample Note",
-        text: "This is a sample note for the widget preview"))
+      date: Date(), configuration: NoteConfigurationIntent(),
+      entity: NoteEntity.sampleEntity)
   }
 
-  func snapshot(for configuration: NoteAppIntent, in context: Context) async -> NoteEntry {
-    let note =
-      configuration.selectedNote != nil ? configuration.selectedNote : await getDefaultNote()
-    return NoteEntry(date: Date(), configuration: configuration, note: note)
+  func snapshot(for configuration: NoteConfigurationIntent, in context: Context) async -> NoteEntry
+  {
+    let entity: NoteEntity?
+    if let selectedNote = configuration.selectedNote {
+      entity = selectedNote
+    } else {
+      entity = await getDefaultEntity()
+    }
+    return NoteEntry(date: Date(), configuration: configuration, entity: entity)
   }
 
-  func timeline(for configuration: NoteAppIntent, in context: Context) async -> Timeline<
+  func timeline(for configuration: NoteConfigurationIntent, in context: Context) async -> Timeline<
     NoteEntry
   > {
-    if let selectedNote = configuration.selectedNote, !selectedNote.email.isEmpty {
-      let actor = NoteModelActor(modelContainer: ModelContainer.shared)
-      try? await actor.syncNotesForAccount(email: selectedNote.email)
-    }
-
-    let note: NoteEntity?
+    let entity: NoteEntity?
     if let selectedNote = configuration.selectedNote {
-      let provider = NoteEntitiesProvider()
-      let entities = try? await provider.entities(for: [selectedNote.id])
-      note = entities?.first
+      let query = NoteQuery()
+      let entities = try? await query.entities(for: [selectedNote.id])
+      entity = entities?.first
     } else {
-      note = await getDefaultNote()
+      entity = await getDefaultEntity()
     }
 
     let entry = NoteEntry(
       date: Date(), configuration: configuration,
-      note: note ?? NoteEntity(id: "", email: "", title: "No Note", text: ""))
-    return Timeline(entries: [entry], policy: .after(Date(timeIntervalSinceNow: 900)))
+      entity: entity)
+    return Timeline(entries: [entry], policy: .never)
   }
 
-  private func getDefaultNote() async -> NoteEntity? {
-    let provider = NoteEntitiesProvider()
-    let entities = try? await provider.suggestedEntities()
-    return entities?.first(where: { !$0.email.isEmpty })
+  private func getDefaultEntity() async -> NoteEntity {
+    let query = NoteQuery()
+    let entities = try? await query.suggestedEntities()
+    return entities?.first(where: { !$0.email.isEmpty }) ?? NoteEntity.sampleEntity
   }
 }
