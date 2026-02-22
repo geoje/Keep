@@ -127,7 +127,6 @@ struct ContentView: View {
       for profile in currentProfiles {
         try addOrUpdateAccount(
           email: profile.email,
-          picture: profile.picture,
           profileName: profile.profileName,
           masterToken: profile.masterToken
         )
@@ -159,9 +158,6 @@ struct ContentView: View {
     )
 
     if let existingAccount = existingAccounts.first {
-      if !picture.isEmpty {
-        existingAccount.picture = picture
-      }
       if !profileName.isEmpty {
         existingAccount.profileName = profileName
       }
@@ -170,7 +166,7 @@ struct ContentView: View {
       }
     } else {
       let newAccount = Account(
-        email: email, picture: picture, profileName: profileName, masterToken: masterToken)
+        email: email, profileName: profileName, masterToken: masterToken)
       modelContext.insert(newAccount)
     }
 
@@ -195,8 +191,8 @@ struct ContentView: View {
 
   private func handlePlayLoginSuccess(email: String, oauthToken: String) async {
     do {
-      let googleApiService = GoogleApiService()
-      let masterToken = try await googleApiService.fetchMasterToken(
+      let googleApiClient = GoogleApiClient()
+      let masterToken = try await googleApiClient.fetchMasterToken(
         email: email, oauthToken: oauthToken)
 
       try addOrUpdateAccount(email: email, masterToken: masterToken)
@@ -224,7 +220,6 @@ struct ContentView: View {
     do {
       try addOrUpdateAccount(
         email: profile.email,
-        picture: profile.picture,
         profileName: profile.profileName,
         masterToken: profile.masterToken
       )
@@ -298,11 +293,11 @@ struct ContentView: View {
     var successCount = 0
     var failCount = 0
 
-    let googleApiService = GoogleApiService()
+    let googleApiClient = GoogleApiClient()
     for account in playAccounts {
       errorMessages[account.email] = nil
       do {
-        try await googleApiService.syncNotes(for: account, modelContext: modelContext)
+        try await googleApiClient.syncNotes(for: account, modelContext: modelContext)
         successCount += 1
       } catch {
         errorMessages[account.email] = error.localizedDescription

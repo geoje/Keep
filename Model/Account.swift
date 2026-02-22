@@ -4,18 +4,16 @@ import SwiftData
 @Model
 class Account {
   var email: String
-  var picture: String = ""
   var profileName: String = ""
   var masterToken: String = ""
   var accessToken: String = ""
   var accessTokenExpiry: String = ""
 
   init(
-    email: String, picture: String = "", profileName: String = "", masterToken: String = "",
+    email: String, profileName: String = "", masterToken: String = "",
     accessToken: String = "", accessTokenExpiry: String = ""
   ) {
     self.email = email
-    self.picture = picture
     self.profileName = profileName
     self.masterToken = masterToken
     self.accessToken = accessToken

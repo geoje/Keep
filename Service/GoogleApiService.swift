@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-class GoogleApiService {
+class GoogleApiClient {
   func fetchMasterToken(email: String, oauthToken: String) async throws -> String {
     var request = URLRequest(url: URL(string: "https://android.clients.google.com/auth")!)
     request.httpMethod = "POST"
@@ -34,7 +34,7 @@ class GoogleApiService {
 
     guard let responseText = String(data: data, encoding: .utf8) else {
       throw NSError(
-        domain: "GoogleApiService", code: 1,
+        domain: "GoogleApiClient", code: 1,
         userInfo: [NSLocalizedDescriptionKey: "No data received"])
     }
     let responseDict = parseResponse(responseText)
@@ -43,7 +43,7 @@ class GoogleApiService {
       return masterToken
     } else {
       throw NSError(
-        domain: "GoogleApiService", code: 1,
+        domain: "GoogleApiClient", code: 1,
         userInfo: [
           NSLocalizedDescriptionKey:
             "Failed to get master token: \(responseDict["Error"] ?? "Unknown error")"
@@ -66,8 +66,7 @@ class GoogleApiService {
       "EncryptedPasswd": masterToken,
       "service":
         "oauth2:https://www.googleapis.com/auth/memento "
-        + "https://www.googleapis.com/auth/reminders "
-        + "https://www.googleapis.com/auth/userinfo.profile",
+        + "https://www.googleapis.com/auth/reminders",
       "source": "android",
       "androidId": "0123456789abcdef",
       "app": "com.google.android.keep",
@@ -87,7 +86,7 @@ class GoogleApiService {
 
     guard let responseText = String(data: data, encoding: .utf8) else {
       throw NSError(
-        domain: "GoogleApiService", code: 1,
+        domain: "GoogleApiClient", code: 1,
         userInfo: [NSLocalizedDescriptionKey: "No data received"])
     }
     let responseDict = parseResponse(responseText)
@@ -103,33 +102,12 @@ class GoogleApiService {
       return (authToken, expiry)
     } else {
       throw NSError(
-        domain: "GoogleApiService", code: 1,
+        domain: "GoogleApiClient", code: 1,
         userInfo: [
           NSLocalizedDescriptionKey:
             "Failed to get access token: \(responseDict["Error"] ?? "Unknown error")"
         ])
     }
-  }
-
-  func fetchProfileURL(accessToken: String) async throws -> String? {
-    let url = URL(string: "https://www.googleapis.com/oauth2/v1/userinfo")!
-    var request = URLRequest(url: url)
-    request.httpMethod = "GET"
-    request.allHTTPHeaderFields = [
-      "Authorization": "OAuth \(accessToken)",
-      "Accept-Encoding": "gzip, deflate",
-      "User-Agent": "github.com/geoje/keep",
-    ]
-
-    let (data, _) = try await URLSession.shared.data(for: request)
-
-    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-      let urlString = json["picture"] as? String
-    else {
-      return nil
-    }
-
-    return urlString
   }
 
   func fetchKeepNotes(email: String, accessToken: String) async throws -> [[String: Any]] {

@@ -131,15 +131,12 @@ class ChromeProfileService: ObservableObject {
       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
       let accountInfoArray = json["account_info"] as? [[String: Any]],
       let firstAccount = accountInfoArray.first,
-      let email = firstAccount["email"] as? String,
-      let pictureUrl = firstAccount["picture_url"] as? String,
-      !email.isEmpty,
-      !pictureUrl.isEmpty
+      let email = firstAccount["email"] as? String, !email.isEmpty
     else {
       return nil
     }
 
-    return Account(email: email, picture: pictureUrl, profileName: profileName)
+    return Account(email: email, profileName: profileName)
   }
 
   func syncMultipleAccounts(_ accounts: [Account], modelContext: ModelContext) async -> [String:
