@@ -7,11 +7,6 @@ import WidgetKit
 struct ContentView: View {
   let modelContainer: ModelContainer
 
-  @StateObject private var chromeDriverService = ChromeDriverService()
-
-  @State private var chromePlayService: ChromePlayService?
-  @State private var chromeProfileService: ChromeProfileService?
-
   @State private var accounts: [Account] = []
   @State private var notes: [Note] = []
   @State private var errorMessages: [String: String] = [:]
@@ -19,8 +14,6 @@ struct ContentView: View {
   @State private var hoveredEmail: String? = nil
   @State private var showDeleteConfirm: Bool = false
   @State private var syncTimer: Timer? = nil
-
-  private var noteService: NoteService { NoteService() }
 
   private var modelContext: ModelContext {
     modelContainer.mainContext
@@ -41,7 +34,7 @@ struct ContentView: View {
     Divider()
 
     ForEach(accounts) { account in
-      let noteCount = noteService.getRootNotes(notes: notes, email: account.email).count
+      let noteCount = NoteService.shared.getRootNotes(notes: notes, email: account.email).count
       let hasPlayService = !account.masterToken.isEmpty
       let hasProfile = !account.profileName.isEmpty
       let icon = hasPlayService && hasProfile ? "🔑👤" : hasPlayService ? "🔑" : hasProfile ? "👤" : ""
@@ -77,17 +70,13 @@ struct ContentView: View {
       requestNotificationPermission()
       loadAccounts()
 
-      if chromeProfileService == nil {
-        chromeProfileService = ChromeProfileService(
-          chromeDriverService: chromeDriverService)
-        chromeProfileService?.onAddSuccess = { profile in
-          Task {
-            await handleProfileAdded(profile: profile)
-          }
-        }
+      ChromeProfileService.shared.onAddSuccess = { profile in
         Task {
-          await syncChromeProfiles()
+          await handleProfileAdded(profile: profile)
         }
+      }
+      Task {
+        await syncChromeProfiles()
       }
 
       syncTimer?.invalidate()
@@ -114,10 +103,8 @@ struct ContentView: View {
   }
 
   private func syncChromeProfiles() async {
-    guard let chromeProfileService = chromeProfileService else { return }
-
     do {
-      let currentProfiles = chromeProfileService.loadChromeProfiles()
+      let currentProfiles = ChromeProfileService.shared.loadChromeProfiles()
       let currentProfileEmails = Set(currentProfiles.map { $0.email })
 
       let existingAccounts = try modelContext.fetch(
@@ -176,23 +163,19 @@ struct ContentView: View {
 
   private func handleAddPlayAccount() async {
     do {
-      if chromePlayService == nil {
-        chromePlayService = ChromePlayService(
-          chromeDriverService: chromeDriverService)
-        chromePlayService?.onLoginSuccess = { email, oauthToken in
-          Task {
-            await handlePlayLoginSuccess(email: email, oauthToken: oauthToken)
-          }
+      ChromePlayService.shared.onLoginSuccess = { email, oauthToken in
+        Task {
+          await handlePlayLoginSuccess(email: email, oauthToken: oauthToken)
         }
       }
-      try await chromePlayService?.startLogin()
+      try await ChromePlayService.shared.startLogin()
     } catch {}
   }
 
   private func handlePlayLoginSuccess(email: String, oauthToken: String) async {
     do {
-      let googleApiClient = GoogleApiClient()
-      let masterToken = try await googleApiClient.fetchMasterToken(
+
+      let masterToken = try await GoogleApiClient.shared.fetchMasterToken(
         email: email, oauthToken: oauthToken)
 
       try addOrUpdateAccount(email: email, masterToken: masterToken)
@@ -203,16 +186,12 @@ struct ContentView: View {
 
   private func handleAddProfileAccount() async {
     do {
-      if chromeProfileService == nil {
-        chromeProfileService = ChromeProfileService(
-          chromeDriverService: chromeDriverService)
-        chromeProfileService?.onAddSuccess = { profile in
-          Task {
-            await handleProfileAdded(profile: profile)
-          }
+      ChromeProfileService.shared.onAddSuccess = { profile in
+        Task {
+          await handleProfileAdded(profile: profile)
         }
       }
-      try await chromeProfileService?.startAdd()
+      try await ChromeProfileService.shared.startAdd()
     } catch {}
   }
 
@@ -254,9 +233,7 @@ struct ContentView: View {
     let email = account.email
 
     if !account.profileName.isEmpty {
-      if let chromeProfileService = chromeProfileService {
-        try? chromeProfileService.deleteProfile(profileName: account.profileName)
-      }
+      try? ChromeProfileService.shared.deleteProfile(profileName: account.profileName)
     }
 
     let existingNotes = try? modelContext.fetch(FetchDescriptor<Note>()).filter {
@@ -293,11 +270,10 @@ struct ContentView: View {
     var successCount = 0
     var failCount = 0
 
-    let googleApiClient = GoogleApiClient()
     for account in playAccounts {
       errorMessages[account.email] = nil
       do {
-        try await googleApiClient.syncNotes(for: account, modelContext: modelContext)
+        try await GoogleApiClient.shared.syncNotes(for: account, modelContext: modelContext)
         successCount += 1
       } catch {
         errorMessages[account.email] = error.localizedDescription
@@ -311,10 +287,10 @@ struct ContentView: View {
       }
 
       let errors =
-        await chromeProfileService?.syncMultipleAccounts(
+        await ChromeProfileService.shared.syncMultipleAccounts(
           profileAccounts,
           modelContext: modelContext
-        ) ?? [:]
+        )
 
       for (email, error) in errors {
         errorMessages[email] = error.localizedDescription

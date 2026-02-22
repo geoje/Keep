@@ -2,6 +2,8 @@ import Foundation
 import SwiftData
 
 class GoogleApiClient {
+  static let shared = GoogleApiClient()
+
   func fetchMasterToken(email: String, oauthToken: String) async throws -> String {
     var request = URLRequest(url: URL(string: "https://android.clients.google.com/auth")!)
     request.httpMethod = "POST"

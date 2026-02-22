@@ -2,7 +2,7 @@ import AppIntents
 import WidgetKit
 
 actor NoteActor {
-  let noteService = NoteService()
+  let noteService = NoteService.shared
   let apiClient = LocalApiClient.shared
 
   init() {}

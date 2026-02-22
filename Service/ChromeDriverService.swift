@@ -2,13 +2,11 @@ import Combine
 import Foundation
 
 class ChromeDriverService: ObservableObject {
-  // MARK: - Properties
+  static let shared = ChromeDriverService()
 
   private let driverPort = 9515
   private var chromedriverProcess: Process?
   private var cachedChromeVersion: String?
-
-  // MARK: - Public API
 
   func launchChrome(url: String = "", headless: Bool = false, profileDirectory: String = "Default")
     async throws -> String
@@ -24,8 +22,6 @@ class ChromeDriverService: ObservableObject {
 
     return sessionId
   }
-
-  // MARK: - Session Management
 
   func deleteSession(_ sessionId: String) async {
     _ = try? await sendRequest(path: "/session/\(sessionId)", method: "DELETE")
@@ -46,8 +42,6 @@ class ChromeDriverService: ObservableObject {
 
     return value
   }
-
-  // MARK: - Getters
 
   func getChromePath() throws -> String {
     guard
@@ -85,8 +79,6 @@ class ChromeDriverService: ObservableObject {
     return chromeDataDir
   }
 
-  // MARK: - Chrome Driver Lifecycle
-
   func startChromeDriver() async throws {
     guard let chromedriverPath = Bundle.main.path(forResource: "chromedriver", ofType: nil)
     else {
@@ -123,8 +115,6 @@ class ChromeDriverService: ObservableObject {
       return false
     }
   }
-
-  // MARK: - Session Helpers
 
   private func createChromeSession(
     headless: Bool, profileDirectory: String = "Default"
@@ -216,8 +206,6 @@ class ChromeDriverService: ObservableObject {
     return nil
   }
 
-  // MARK: - HTTP Request Helper
-
   @discardableResult
   private func sendRequest(
     path: String,
@@ -260,8 +248,6 @@ class ChromeDriverService: ObservableObject {
       await deleteSession(sessionId)
     }
   }
-
-  // MARK: - Cleanup
 
   func cleanup() async {
     await deleteAllSessions()

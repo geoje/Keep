@@ -2,20 +2,20 @@ import Combine
 import Foundation
 
 class ChromePlayService: ObservableObject {
-  private let chromeDriverService: ChromeDriverService
+  static let shared = ChromePlayService()
+
   private var monitorTask: Task<Void, Never>?
   private var currentSessionId: String?
   var onLoginSuccess: ((String, String) -> Void)?
 
-  init(chromeDriverService: ChromeDriverService) {
-    self.chromeDriverService = chromeDriverService
-  }
-
   func startLogin() async throws {
-    await chromeDriverService.deleteAllSessions()
-    let sessionId = try await chromeDriverService.launchChrome(
+    stopMonitoring()
+
+    await ChromeDriverService.shared.deleteAllSessions()
+    let sessionId = try await ChromeDriverService.shared.launchChrome(
       url: "https://accounts.google.com/EmbeddedSetup")
     currentSessionId = sessionId
+
     startMonitoring()
   }
 
@@ -47,7 +47,7 @@ class ChromePlayService: ObservableObject {
               return
             }
             self.stopMonitoring()
-            await self.chromeDriverService.cleanup()
+            await ChromeDriverService.shared.cleanup()
             self.onLoginSuccess?(email, oauthToken)
             return
           }

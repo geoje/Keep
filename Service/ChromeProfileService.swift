@@ -3,21 +3,21 @@ import Foundation
 import SwiftData
 
 class ChromeProfileService: ObservableObject {
-  private let chromeDriverService: ChromeDriverService
+  static let shared = ChromeProfileService()
+
   private var monitorTask: Task<Void, Never>?
   private var initialProfiles: Set<String> = []
   private var currentSessionId: String?
   var onAddSuccess: ((Account) -> Void)?
 
-  init(chromeDriverService: ChromeDriverService) {
-    self.chromeDriverService = chromeDriverService
-  }
-
   func startAdd() async throws {
-    await chromeDriverService.deleteAllSessions()
-    let sessionId = try await chromeDriverService.launchChrome(
+    stopMonitoring()
+
+    await ChromeDriverService.shared.deleteAllSessions()
+    let sessionId = try await ChromeDriverService.shared.launchChrome(
       url: "https://support.google.com/chrome/answer/2364824")
     currentSessionId = sessionId
+
     startMonitoring()
   }
 
@@ -26,7 +26,7 @@ class ChromeProfileService: ObservableObject {
     monitorTask = Task { [weak self] in
       guard let self = self else { return }
 
-      guard let chromeDataDir = self.chromeDriverService.getChromeDataDir() else {
+      guard let chromeDataDir = ChromeDriverService.shared.getChromeDataDir() else {
         return
       }
 
@@ -69,7 +69,7 @@ class ChromeProfileService: ObservableObject {
   }
 
   private func isExplicitSignIn(profileName: String) -> Bool {
-    guard let chromeDataDir = chromeDriverService.getChromeDataDir(),
+    guard let chromeDataDir = ChromeDriverService.shared.getChromeDataDir(),
       let data = try? Data(
         contentsOf: chromeDataDir.appendingPathComponent(profileName).appendingPathComponent(
           "Preferences")),
@@ -85,7 +85,7 @@ class ChromeProfileService: ObservableObject {
   }
 
   func loadChromeProfiles() -> [Account] {
-    guard let chromeDataDir = chromeDriverService.getChromeDataDir() else {
+    guard let chromeDataDir = ChromeDriverService.shared.getChromeDataDir() else {
       return []
     }
 
@@ -95,7 +95,7 @@ class ChromeProfileService: ObservableObject {
   }
 
   private func getCurrentProfiles() -> Set<String> {
-    guard let chromeDataDir = chromeDriverService.getChromeDataDir(),
+    guard let chromeDataDir = ChromeDriverService.shared.getChromeDataDir(),
       let contents = try? FileManager.default.contentsOfDirectory(
         at: chromeDataDir,
         includingPropertiesForKeys: [.isDirectoryKey],
@@ -148,11 +148,11 @@ class ChromeProfileService: ObservableObject {
     guard !accounts.isEmpty else { return errors }
 
     do {
-      try await chromeDriverService.startChromeDriver()
+      try await ChromeDriverService.shared.startChromeDriver()
 
       for account in accounts {
         do {
-          let sessionId = try await chromeDriverService.launchChrome(
+          let sessionId = try await ChromeDriverService.shared.launchChrome(
             url: "https://keep.google.com",
             headless: true,
             profileDirectory: account.profileName
@@ -171,7 +171,7 @@ class ChromeProfileService: ObservableObject {
       }
     }
 
-    await chromeDriverService.cleanup()
+    await ChromeDriverService.shared.cleanup()
 
     return errors
   }
@@ -179,7 +179,7 @@ class ChromeProfileService: ObservableObject {
   private func syncNotesForSession(sessionId: String, account: Account, modelContext: ModelContext)
     async throws
   {
-    let html = try await chromeDriverService.getPageSource(sessionId: sessionId)
+    let html = try await ChromeDriverService.shared.getPageSource(sessionId: sessionId)
 
     guard let jsonString = extractLoadChunkJSON(from: html),
       let jsonData = unescapeJSONString(jsonString).data(using: .utf8),
@@ -237,7 +237,7 @@ class ChromeProfileService: ObservableObject {
   }
 
   func deleteProfile(profileName: String) throws {
-    guard let chromeDataDir = chromeDriverService.getChromeDataDir() else {
+    guard let chromeDataDir = ChromeDriverService.shared.getChromeDataDir() else {
       throw ChromeProfileError.dataDirectoryNotFound
     }
 

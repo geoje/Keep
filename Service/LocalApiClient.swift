@@ -2,6 +2,7 @@ import Foundation
 
 struct LocalApiClient {
   static let shared = LocalApiClient()
+
   private let baseURL = URL(string: "http://localhost:14339")!
 
   func fetchNotes() async throws -> [Note] {
