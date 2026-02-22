@@ -12,7 +12,6 @@ struct NoteEntity: AppEntity {
   let type: String
   let serverId: String
 
-  typealias ID = String
   static let sampleEntity = NoteEntity(
     id: "", email: "", title: "Sample Note",
     text: "This is a sample note for the widget preview"
@@ -34,15 +33,11 @@ struct NoteEntity: AppEntity {
     self.serverId = serverId
   }
 
-  static var defaultQuery: NoteQuery { NoteQuery() }
+  static var defaultQuery: NoteQuery = NoteQuery()
   static var typeDisplayRepresentation: TypeDisplayRepresentation = "Note"
 
   var displayRepresentation: DisplayRepresentation {
-    DisplayRepresentation(
-      title: buildTitle(),
-      subtitle: buildSubtitle(),
-      image: DisplayRepresentation.Image(systemName: "document")
-    )
+    DisplayRepresentation(title: buildTitle(), subtitle: buildSubtitle())
   }
 
   private func buildTitle() -> LocalizedStringResource {
