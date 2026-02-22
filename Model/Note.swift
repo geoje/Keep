@@ -53,18 +53,15 @@ final class Note {
     self.checkedCheckboxesCount = checkedCheckboxesCount
   }
 
-  static func from(dict: [String: Any], email: String) throws -> Note {
-    let timestampsDict = (dict["timestamps"] as? [String: Any]) ?? [:]
-    let previewDataDict = (dict["previewData"] as? [String: Any]) ?? [:]
-
+  static func decode(dict: [String: Any]) -> Note {
     return Note(
-      email: email,
+      email: dict["email"] as? String ?? "",
       id: dict["id"] as? String ?? "",
       serverId: dict["serverId"] as? String ?? "",
       kind: dict["kind"] as? String ?? "",
       parentId: dict["parentId"] as? String ?? "",
       type: dict["type"] as? String ?? "",
-      trashed: timestampsDict["trashed"] as? String ?? "",
+      trashed: dict["trashed"] as? String ?? "",
       title: dict["title"] as? String ?? "",
       text: dict["text"] as? String ?? "",
       isArchived: dict["isArchived"] as? Bool ?? false,
@@ -72,11 +69,24 @@ final class Note {
       sortValue: dict["sortValue"] as? String ?? "",
       checked: dict["checked"] as? Bool ?? false,
       indexableText: dict["indexableText"] as? String ?? "",
-      checkedCheckboxesCount: previewDataDict["checkedCheckboxesCount"] as? String ?? ""
+      checkedCheckboxesCount: dict["checkedCheckboxesCount"] as? String ?? ""
     )
   }
 
-  func toDictionary() -> [String: Any] {
+  static func parse(dict: [String: Any], email: String) throws -> Note {
+    let timestampsDict = (dict["timestamps"] as? [String: Any]) ?? [:]
+    let previewDataDict = (dict["previewData"] as? [String: Any]) ?? [:]
+
+    var mutableDict = dict
+    mutableDict["email"] = email
+    mutableDict["trashed"] = timestampsDict["trashed"] as? String ?? ""
+    mutableDict["checkedCheckboxesCount"] =
+      previewDataDict["checkedCheckboxesCount"] as? String ?? ""
+
+    return decode(dict: mutableDict)
+  }
+
+  func encode() -> [String: Any] {
     return [
       "email": email,
       "id": id,

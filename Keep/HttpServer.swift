@@ -46,7 +46,7 @@ class HttpServer {
   func handleRequest(method: String, path: String, connection: NWConnection) -> String {
     switch (method, path) {
     case ("GET", "/notes"):
-      let noteDicts = self.getAllNotes().map { $0.toDictionary() }
+      let noteDicts = self.getAllNotes().map { $0.encode() }
       let jsonData = try? JSONSerialization.data(withJSONObject: noteDicts, options: [])
       let jsonString = jsonData.flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
       return

@@ -163,7 +163,7 @@ class GoogleApiClient {
     }
 
     let notes = try nodesArray.map { nodeDict in
-      return try Note.from(dict: nodeDict, email: account.email)
+      return try Note.parse(dict: nodeDict, email: account.email)
     }
 
     for note in notes {

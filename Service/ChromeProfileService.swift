@@ -195,7 +195,7 @@ class ChromeProfileService: ObservableObject {
     existingNotes.forEach { modelContext.delete($0) }
 
     for rootNoteDict in rootNoteDicts {
-      let rootNote = try Note.from(dict: rootNoteDict, email: accountEmail)
+      let rootNote = try Note.parse(dict: rootNoteDict, email: accountEmail)
       modelContext.insert(rootNote)
     }
 
