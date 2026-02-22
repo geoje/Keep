@@ -2,7 +2,6 @@ import AppIntents
 import SwiftData
 import WidgetKit
 
-// struct NoteQuery: EntityStringQuery {
 struct NoteQuery: EntityQuery {
 
   func suggestedEntities() async throws -> IntentItemCollection<NoteEntity> {
@@ -21,10 +20,6 @@ struct NoteQuery: EntityQuery {
 
     return IntentItemCollection(sections: sections)
   }
-
-  // func entities(matching string: String) async throws -> IntentItemCollection<NoteEntity> {
-  //   try await suggestedEntities()
-  // }
 
   func entities(for identifiers: [String]) async throws -> [NoteEntity] {
     let actor = NoteActor(modelContainer: ModelContainer.shared)
