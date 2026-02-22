@@ -8,21 +8,25 @@ actor NoteActor {
   init() {}
 
   func fetchNotes() async throws -> [NoteEntity] {
-    let notes = try await apiClient.fetchNotes()
-    let emails = Set(notes.map { $0.email })
-    var entities: [NoteEntity] = []
-    for email in emails {
-      let rootNotes = noteService.getRootNotes(notes: notes, email: email)
-      entities.append(
-        contentsOf: rootNotes.map { rootNote in
-          if !rootNote.checkedCheckboxesCount.isEmpty {
-            return buildEntityItself(rootNote: rootNote)
-          } else {
-            return buildEntityWithChildren(note: rootNote, notes: notes)
-          }
-        })
+    do {
+      let notes = try await apiClient.fetchNotes()
+      let emails = Set(notes.map { $0.email })
+      var entities: [NoteEntity] = []
+      for email in emails {
+        let rootNotes = noteService.getRootNotes(notes: notes, email: email)
+        entities.append(
+          contentsOf: rootNotes.map { rootNote in
+            if !rootNote.checkedCheckboxesCount.isEmpty {
+              return buildEntityItself(rootNote: rootNote)
+            } else {
+              return buildEntityWithChildren(note: rootNote, notes: notes)
+            }
+          })
+      }
+      return entities
+    } catch _ as URLError {
+      return [buildErrorNoteEntity()]
     }
-    return entities
   }
 
   private func buildEntityItself(rootNote: Note) -> NoteEntity {
@@ -89,6 +93,20 @@ actor NoteActor {
       text: uncheckedItems.joined(separator: "\n"),
       type: note.type,
       serverId: note.serverId
+    )
+  }
+
+  private func buildErrorNoteEntity() -> NoteEntity {
+    return NoteEntity(
+      id: UUID().uuidString,
+      email: "error@keep.local",
+      color: "",
+      title: "Error",
+      text:
+        "Cannot connect to the Keep local server.\n"
+        + "Please make sure Keep is running in the Menubar.",
+      type: "TEXT",
+      serverId: ""
     )
   }
 }
