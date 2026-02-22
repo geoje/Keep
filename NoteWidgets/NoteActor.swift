@@ -23,7 +23,6 @@ actor NoteActor: ModelActor {
     var entities: [NoteEntity] = []
     for account in accounts {
       let rootNotes = noteService.getRootNotes(notes: notes, email: account.email)
-      entities.append(NoteEntity(id: account.email, email: ""))
       entities.append(
         contentsOf: rootNotes.map {
           buildEntity(

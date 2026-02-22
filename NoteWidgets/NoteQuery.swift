@@ -2,25 +2,32 @@ import AppIntents
 import SwiftData
 import WidgetKit
 
-struct NoteQuery: EntityStringQuery {
-  func suggestedEntities() async throws -> [NoteEntity] {
+// struct NoteQuery: EntityStringQuery {
+struct NoteQuery: EntityQuery {
+
+  func suggestedEntities() async throws -> IntentItemCollection<NoteEntity> {
+    var sections: [IntentItemSection<NoteEntity>] = []
+
     let actor = NoteActor(modelContainer: ModelContainer.shared)
-    return try await actor.fetchNotes()
-  }
-
-  func entities(matching string: String) async throws -> [NoteEntity] {
-    let search = string.lowercased()
-
-    return try await suggestedEntities().filter { entity in
-      entity.email.lowercased().contains(search)
-        || entity.title.lowercased().contains(search)
-        || entity.text.lowercased().contains(search)
-        || entity.uncheckedItems.contains(where: { $0.lowercased().contains(search) })
-        || entity.checkedItems.contains(where: { $0.lowercased().contains(search) })
+    let grouped = Dictionary(grouping: try await actor.fetchNotes(), by: { $0.email })
+    for (email, notes) in grouped {
+      sections.append(
+        IntentItemSection<NoteEntity>(
+          LocalizedStringResource(stringLiteral: email),
+          items: notes.map { IntentItem($0) }
+        )
+      )
     }
+
+    return IntentItemCollection(sections: sections)
   }
+
+  // func entities(matching string: String) async throws -> IntentItemCollection<NoteEntity> {
+  //   try await suggestedEntities()
+  // }
 
   func entities(for identifiers: [String]) async throws -> [NoteEntity] {
-    return try await suggestedEntities().filter { identifiers.contains($0.id) }
+    let actor = NoteActor(modelContainer: ModelContainer.shared)
+    return try await actor.fetchNotes().filter { identifiers.contains($0.id) }
   }
 }

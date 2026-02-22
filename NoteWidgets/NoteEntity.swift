@@ -41,9 +41,6 @@ struct NoteEntity: AppEntity {
   }
 
   private func buildTitle() -> LocalizedStringResource {
-    if email.isEmpty {
-      return LocalizedStringResource(stringLiteral: "--- \(id) ---")
-    }
     return LocalizedStringResource(
       stringLiteral: (title.isEmpty ? "Untitled" : title).truncated(to: 30))
   }
