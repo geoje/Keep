@@ -99,7 +99,7 @@ actor NoteActor {
   private func buildErrorNoteEntity() -> NoteEntity {
     return NoteEntity(
       id: UUID().uuidString,
-      email: "error@keep.local",
+      email: "",
       color: "",
       title: "Error",
       text:

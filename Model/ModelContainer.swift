@@ -20,15 +20,13 @@ extension ModelContainer {
 
     let fileManager = FileManager.default
     guard
-      let containerURL = fileManager.containerURL(
-        forSecurityApplicationGroupIdentifier: "group.\(baseBundleIdentifier)")
+      let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+        .first
     else {
-      fatalError("App Group container not found")
+      fatalError("Application Support directory not found")
     }
-
-    let dataDirectory = containerURL
+    let dataDirectory = appSupportURL.appendingPathComponent(baseBundleIdentifier)
     try? fileManager.createDirectory(at: dataDirectory, withIntermediateDirectories: true)
-
     let url = dataDirectory.appendingPathComponent("default.sqlite")
     let modelConfiguration = ModelConfiguration(schema: schema, url: url)
 

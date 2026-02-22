@@ -1,7 +1,7 @@
+import AppIntents
 import SwiftData
 import SwiftUI
 import WidgetKit
-import AppIntents
 
 struct NoteProvider: AppIntentTimelineProvider {
   func placeholder(in context: Context) -> NoteEntry {
@@ -42,6 +42,6 @@ struct NoteProvider: AppIntentTimelineProvider {
   private func getDefaultEntity() async -> NoteEntity {
     let query = NoteQuery()
     let entities = try? await query.suggestedEntities()
-      return entities?.items.first(where: { !$0.email.isEmpty }) ?? NoteEntity.sampleEntity
+    return entities?.items.first ?? NoteEntity.sampleEntity
   }
 }
