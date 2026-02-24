@@ -1,4 +1,5 @@
 import AppKit
+import Sparkle
 import SwiftData
 import SwiftUI
 import UserNotifications
@@ -14,6 +15,10 @@ struct ContentView: View {
   @State private var hoveredEmail: String? = nil
   @State private var showDeleteConfirm: Bool = false
   @State private var syncTimer: Timer? = nil
+  @State private var updaterController: SPUStandardUpdaterController = {
+    SPUStandardUpdaterController(
+      startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+  }()
 
   private var modelContext: ModelContext {
     modelContainer.mainContext
@@ -53,11 +58,9 @@ struct ContentView: View {
     }
 
     Button(action: {
-      if let url = URL(string: "https://github.com/geoje/Keep/releases") {
-        NSWorkspace.shared.open(url)
-      }
+      updaterController.checkForUpdates(nil)
     }) {
-      Label("Update Keep", systemImage: "arrow.down.circle")
+      Label("Check for Updates", systemImage: "arrow.down.circle")
     }
     Button(action: {
       Task { await syncAllAccounts(notify: true) }
