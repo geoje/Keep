@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8512F7422F4F7B2F00994039 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 8512F7412F4F7B2F00994039 /* FirebaseAnalytics */; };
 		8570531D2F4CAD920024F867 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 8570531C2F4CAD920024F867 /* Sparkle */; };
 		858C33E62F4129FA001F1CB9 /* chromedriver in Resources */ = {isa = PBXBuildFile; fileRef = 858C33E42F4129FA001F1CB9 /* chromedriver */; };
 		858C33E92F412A54001F1CB9 /* Google Chrome for Testing.app in Resources */ = {isa = PBXBuildFile; fileRef = 858C33E72F412A54001F1CB9 /* Google Chrome for Testing.app */; };
@@ -130,6 +131,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8512F7422F4F7B2F00994039 /* FirebaseAnalytics in Frameworks */,
 				8570531D2F4CAD920024F867 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -211,6 +213,7 @@
 			name = Keep;
 			packageProductDependencies = (
 				8570531C2F4CAD920024F867 /* Sparkle */,
+				8512F7412F4F7B2F00994039 /* FirebaseAnalytics */,
 			);
 			productName = Keep;
 			productReference = 859B902F2F255006009BCA5A /* Keep.app */;
@@ -267,6 +270,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				8570531B2F4CAD920024F867 /* XCRemoteSwiftPackageReference "Sparkle" */,
+				8512F7402F4F7B2F00994039 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 859B90302F255006009BCA5A /* Products */;
@@ -673,6 +677,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		8512F7402F4F7B2F00994039 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.10.0;
+			};
+		};
 		8570531B2F4CAD920024F867 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
@@ -684,6 +696,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		8512F7412F4F7B2F00994039 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8512F7402F4F7B2F00994039 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
 		8570531C2F4CAD920024F867 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 8570531B2F4CAD920024F867 /* XCRemoteSwiftPackageReference "Sparkle" */;

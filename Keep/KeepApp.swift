@@ -1,14 +1,21 @@
 import AppKit
+import FirebaseAnalytics
+import FirebaseCore
 import Foundation
 import SwiftData
 import SwiftUI
 
+class AppDelegate: NSObject, NSApplicationDelegate {
+  func applicationDidFinishLaunching(_ notification: Notification) {
+    HttpServer(modelContainer: ModelContainer.shared).start()
+    FirebaseApp.configure()
+    Analytics.setAnalyticsCollectionEnabled(true)
+  }
+}
+
 @main
 struct KeepApp: App {
-  init() {
-    let httpServer = HttpServer(modelContainer: ModelContainer.shared)
-    httpServer.start()
-  }
+  @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
   var body: some Scene {
     MenuBarExtra {
