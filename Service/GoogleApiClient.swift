@@ -39,7 +39,7 @@ class GoogleApiClient {
         domain: "GoogleApiClient", code: 1,
         userInfo: [NSLocalizedDescriptionKey: "No data received"])
     }
-    let responseDict = parseResponse(responseText)
+    let responseDict = parseAuthResponse(responseText)
 
     if let masterToken = responseDict["Token"] {
       return masterToken
@@ -91,7 +91,7 @@ class GoogleApiClient {
         domain: "GoogleApiClient", code: 1,
         userInfo: [NSLocalizedDescriptionKey: "No data received"])
     }
-    let responseDict = parseResponse(responseText)
+    let responseDict = parseAuthResponse(responseText)
 
     if let authToken = responseDict["Auth"] {
       var expiry: Date = Date(timeIntervalSince1970: 0)
@@ -112,7 +112,29 @@ class GoogleApiClient {
     }
   }
 
-  func fetchKeepNotes(email: String, accessToken: String) async throws -> [[String: Any]] {
+  private func parseAuthResponse(_ responseText: String) -> [String: String] {
+    return responseText.split(separator: "\n").reduce(into: [String: String]()) { result, line in
+      let parts = line.split(separator: "=", maxSplits: 1)
+      if parts.count == 2 {
+        result[String(parts[0])] = String(parts[1])
+      }
+    }
+  }
+
+  func getAccessToken(for account: Account, modelContext: ModelContext) async throws -> String {
+    if !account.isAccessTokenExpired() && !account.accessToken.isEmpty {
+      return account.accessToken
+    } else {
+      let (token, expiry) = try await fetchAccessToken(
+        email: account.email, masterToken: account.masterToken)
+      account.accessToken = token
+      account.setAccessTokenExpiry(date: expiry)
+      try modelContext.save()
+      return token
+    }
+  }
+
+  private func fetchNotes(email: String, accessToken: String) async throws -> [[String: Any]] {
     var request = URLRequest(url: URL(string: "https://www.googleapis.com/notes/v1/changes")!)
     request.httpMethod = "POST"
     request.allHTTPHeaderFields = [
@@ -151,9 +173,15 @@ class GoogleApiClient {
     return nodesArray
   }
 
+  private func generateClientSessionId() -> String {
+    let timestamp = Int(Date().timeIntervalSince1970 * 1000)
+    let randomInt = UInt32.random(in: 0...UInt32.max)
+    return "s--\(timestamp)--\(randomInt)"
+  }
+
   func syncNotes(for account: Account, modelContext: ModelContext) async throws {
     let accessToken = try await getAccessToken(for: account, modelContext: modelContext)
-    let nodesArray = try await fetchKeepNotes(email: account.email, accessToken: accessToken)
+    let nodesArray = try await fetchNotes(email: account.email, accessToken: accessToken)
 
     let accountEmail = account.email
     let existingNotes = try modelContext.fetch(
@@ -173,33 +201,5 @@ class GoogleApiClient {
     }
 
     try modelContext.save()
-  }
-
-  func getAccessToken(for account: Account, modelContext: ModelContext) async throws -> String {
-    if !account.isAccessTokenExpired() && !account.accessToken.isEmpty {
-      return account.accessToken
-    } else {
-      let (token, expiry) = try await fetchAccessToken(
-        email: account.email, masterToken: account.masterToken)
-      account.accessToken = token
-      account.setAccessTokenExpiry(date: expiry)
-      try modelContext.save()
-      return token
-    }
-  }
-
-  private func parseResponse(_ responseText: String) -> [String: String] {
-    return responseText.split(separator: "\n").reduce(into: [String: String]()) { result, line in
-      let parts = line.split(separator: "=", maxSplits: 1)
-      if parts.count == 2 {
-        result[String(parts[0])] = String(parts[1])
-      }
-    }
-  }
-
-  private func generateClientSessionId() -> String {
-    let timestamp = Int(Date().timeIntervalSince1970 * 1000)
-    let randomInt = UInt32.random(in: 0...UInt32.max)
-    return "s--\(timestamp)--\(randomInt)"
   }
 }
