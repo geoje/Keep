@@ -38,9 +38,11 @@ struct AccountListView: View {
               }
             }
             if let errorMessage = errorMessages[account.email] {
-              Image(systemName: "exclamationmark")
-                .font(.caption.bold())
+              Image(systemName: "exclamationmark.triangle.fill")
+                .font(.caption)
                 .foregroundStyle(.yellow)
+                .padding(6)
+                .contentShape(Rectangle())
                 .help(errorMessage)
             }
             if syncingAccounts.contains(account.email) {

@@ -39,8 +39,6 @@ final class AccountManager {
     }
   }
 
-  // MARK: - Add Account
-
   func handleAddPlayAccount() async {
     do {
       ChromePlayService.shared.onLoginSuccess = { [weak self] email, oauthToken in
@@ -89,6 +87,7 @@ final class AccountManager {
     do {
       try addOrUpdateAccount(
         email: profile.email,
+        picture: profile.picture,
         profileName: profile.profileName,
         masterToken: profile.masterToken
       )
@@ -96,8 +95,6 @@ final class AccountManager {
       sendNotification(title: "Account Added", body: profile.email)
     } catch {}
   }
-
-  // MARK: - Delete Account
 
   func deleteAccount(_ account: Account) {
     if !account.profileName.isEmpty {
@@ -113,8 +110,6 @@ final class AccountManager {
     try? modelContext.save()
     load()
   }
-
-  // MARK: - Sync
 
   func syncAllAccounts() async {
     let playAccounts = accounts.filter { !$0.masterToken.isEmpty }
@@ -133,26 +128,20 @@ final class AccountManager {
       syncingAccounts.remove(account.email)
     }
 
-    if !profileAccounts.isEmpty {
-      profileAccounts.forEach {
-        errorMessages[$0.email] = nil
-        syncingAccounts.insert($0.email)
+    for account in profileAccounts {
+      errorMessages[account.email] = nil
+      syncingAccounts.insert(account.email)
+      do {
+        try await ChromeProfileService.shared.syncAccount(account, modelContext: modelContext)
+      } catch {
+        errorMessages[account.email] = error.localizedDescription
       }
-
-      let errors = await ChromeProfileService.shared.syncMultipleAccounts(
-        profileAccounts, modelContext: modelContext)
-
-      profileAccounts.forEach { syncingAccounts.remove($0.email) }
-      for (email, error) in errors {
-        errorMessages[email] = error.localizedDescription
-      }
+      syncingAccounts.remove(account.email)
     }
 
     load()
     WidgetCenter.shared.reloadAllTimelines()
   }
-
-  // MARK: - Private helpers
 
   private func syncChromeProfiles() async {
     do {
@@ -166,8 +155,8 @@ final class AccountManager {
       for profile in currentProfiles {
         try addOrUpdateAccount(
           email: profile.email,
-          profileName: profile.profileName,
-          masterToken: profile.masterToken
+          picture: profile.picture,
+          profileName: profile.profileName
         )
       }
 
@@ -197,6 +186,7 @@ final class AccountManager {
     )
 
     if let existing = existingAccounts.first {
+      if !picture.isEmpty { existing.picture = picture }
       if !profileName.isEmpty { existing.profileName = profileName }
       if !masterToken.isEmpty { existing.masterToken = masterToken }
     } else {

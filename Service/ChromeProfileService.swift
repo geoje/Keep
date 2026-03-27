@@ -131,49 +131,26 @@ class ChromeProfileService: ObservableObject {
       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
       let accountInfoArray = json["account_info"] as? [[String: Any]],
       let firstAccount = accountInfoArray.first,
-      let email = firstAccount["email"] as? String, !email.isEmpty
+      let email = firstAccount["email"] as? String, !email.isEmpty,
+      let pictureUrl = firstAccount["picture_url"] as? String, !pictureUrl.isEmpty
     else {
       return nil
     }
 
-    return Account(email: email, profileName: profileName)
+    return Account(email: email, picture: pictureUrl, profileName: profileName)
   }
 
-  func syncMultipleAccounts(_ accounts: [Account], modelContext: ModelContext) async -> [String:
-    Error]
-  {
-    var errors: [String: Error] = [:]
-    var sessionIds: [String] = []
+  func syncAccount(_ account: Account, modelContext: ModelContext) async throws {
+    try await ChromeDriverService.shared.startChromeDriver()
+    defer { Task { await ChromeDriverService.shared.deleteAllSessions() } }
 
-    guard !accounts.isEmpty else { return errors }
-
-    do {
-      try await ChromeDriverService.shared.startChromeDriver()
-
-      for account in accounts {
-        do {
-          let sessionId = try await ChromeDriverService.shared.launchChrome(
-            url: "https://keep.google.com",
-            headless: true,
-            profileDirectory: account.profileName
-          )
-          sessionIds.append(sessionId)
-
-          try await syncNotesForSession(
-            sessionId: sessionId, account: account, modelContext: modelContext)
-        } catch {
-          errors[account.email] = error
-        }
-      }
-    } catch {
-      for account in accounts {
-        errors[account.email] = error
-      }
-    }
-
-    await ChromeDriverService.shared.cleanup()
-
-    return errors
+    let sessionId = try await ChromeDriverService.shared.launchChrome(
+      url: "https://keep.google.com",
+      headless: true,
+      profileDirectory: account.profileName
+    )
+    try await syncNotesForSession(
+      sessionId: sessionId, account: account, modelContext: modelContext)
   }
 
   private func syncNotesForSession(sessionId: String, account: Account, modelContext: ModelContext)
