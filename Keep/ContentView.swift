@@ -24,6 +24,8 @@ struct ContentView: View {
       AccountListView(
         accounts: accountManager.accounts,
         notes: accountManager.notes,
+        syncingAccounts: accountManager.syncingAccounts,
+        errorMessages: accountManager.errorMessages,
         onDelete: accountManager.deleteAccount
       )
 
@@ -36,7 +38,7 @@ struct ContentView: View {
           onChromeProfile: { Task { await accountManager.handleAddProfileAccount() } }
         )
 
-        Button(action: { Task { await accountManager.syncAllAccounts(notify: true) } }) {
+        Button(action: { Task { await accountManager.syncAllAccounts() } }) {
           Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
             .font(.system(size: 16))
             .foregroundStyle(.secondary)
@@ -73,7 +75,7 @@ struct ContentView: View {
 
       syncTimer?.invalidate()
       syncTimer = Timer.scheduledTimer(withTimeInterval: 900, repeats: true) { _ in
-        Task { await accountManager.syncAllAccounts(notify: false) }
+        Task { await accountManager.syncAllAccounts() }
       }
     }
     .onDisappear {

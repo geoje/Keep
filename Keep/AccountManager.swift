@@ -10,6 +10,7 @@ final class AccountManager {
   var accounts: [Account] = []
   var notes: [Note] = []
   var errorMessages: [String: String] = [:]
+  var syncingAccounts: Set<String> = []
 
   private let modelContainer: ModelContainer
   private var modelContext: ModelContext { modelContainer.mainContext }
@@ -115,53 +116,40 @@ final class AccountManager {
 
   // MARK: - Sync
 
-  func syncAllAccounts(notify: Bool = true) async {
+  func syncAllAccounts() async {
     let playAccounts = accounts.filter { !$0.masterToken.isEmpty }
     let profileAccounts = accounts.filter { !$0.profileName.isEmpty && $0.masterToken.isEmpty }
 
     guard !playAccounts.isEmpty || !profileAccounts.isEmpty else { return }
 
-    let totalCount = playAccounts.count + profileAccounts.count
-    if notify {
-      sendNotification(
-        title: "Sync Started",
-        body: "Syncing \(totalCount) account\(totalCount > 1 ? "s" : "")")
-    }
-
-    var successCount = 0
-    var failCount = 0
-
     for account in playAccounts {
       errorMessages[account.email] = nil
+      syncingAccounts.insert(account.email)
       do {
         try await GoogleApiClient.shared.syncNotes(for: account, modelContext: modelContext)
-        successCount += 1
       } catch {
         errorMessages[account.email] = error.localizedDescription
-        failCount += 1
       }
+      syncingAccounts.remove(account.email)
     }
 
     if !profileAccounts.isEmpty {
-      profileAccounts.forEach { errorMessages[$0.email] = nil }
+      profileAccounts.forEach {
+        errorMessages[$0.email] = nil
+        syncingAccounts.insert($0.email)
+      }
 
       let errors = await ChromeProfileService.shared.syncMultipleAccounts(
         profileAccounts, modelContext: modelContext)
 
+      profileAccounts.forEach { syncingAccounts.remove($0.email) }
       for (email, error) in errors {
         errorMessages[email] = error.localizedDescription
-        failCount += 1
       }
-      successCount += profileAccounts.count - errors.count
     }
 
     load()
     WidgetCenter.shared.reloadAllTimelines()
-
-    if notify {
-      let title = failCount == 0 ? "Sync Successful" : "Sync Failed"
-      sendNotification(title: title, body: "\(successCount) success, \(failCount) failed")
-    }
   }
 
   // MARK: - Private helpers

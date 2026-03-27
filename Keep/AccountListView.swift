@@ -3,6 +3,8 @@ import SwiftUI
 struct AccountListView: View {
   let accounts: [Account]
   let notes: [Note]
+  let syncingAccounts: Set<String>
+  let errorMessages: [String: String]
   let onDelete: (Account) -> Void
 
   @Environment(\.colorScheme) var colorScheme
@@ -34,6 +36,17 @@ struct AccountListView: View {
                   collapsedAccounts.insert(account.email)
                 }
               }
+            }
+            if let errorMessage = errorMessages[account.email] {
+              Image(systemName: "exclamationmark")
+                .font(.caption.bold())
+                .foregroundStyle(.yellow)
+                .help(errorMessage)
+            }
+            if syncingAccounts.contains(account.email) {
+              ProgressView()
+                .scaleEffect(0.4)
+                .frame(width: 12, height: 12)
             }
             Spacer()
             Menu {

@@ -6,8 +6,8 @@ struct AddAccountButton: View {
 
   var body: some View {
     Menu {
-      Button("Play Service 🔑", action: onPlayService)
-      Button("Chrome Profiles 👤", action: onChromeProfile)
+      Button("Play Service", action: onPlayService)
+      Button("Chrome Profiles", action: onChromeProfile)
     } label: {
       Image(systemName: "plus")
         .font(.system(size: 16))
