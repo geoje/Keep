@@ -117,7 +117,9 @@ struct AccountListView: View {
     if note.type == "LIST" {
       var unchecked: [String] = []
       var checked: [String] = []
-      for n in allNotes where n.parentId == note.id {
+      let children = allNotes.filter { $0.parentId == note.id }
+        .sorted { (Int($0.sortValue) ?? 0) > (Int($1.sortValue) ?? 0) }
+      for n in children {
         if n.checked { checked.append(n.text) } else { unchecked.append(n.text) }
       }
       return (unchecked, checked, "")

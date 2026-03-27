@@ -62,13 +62,13 @@ actor NoteActor {
   private func buildEntityWithChildren(note: Note, notes: [Note]) -> NoteEntity {
     var uncheckedItems: [String] = []
     var checkedItems: [String] = []
-    for n in notes {
-      if n.parentId == note.id {
-        if n.checked {
-          checkedItems.append(n.text)
-        } else {
-          uncheckedItems.append(n.text)
-        }
+    let children = notes.filter { $0.parentId == note.id }
+      .sorted { (Int($0.sortValue) ?? 0) > (Int($1.sortValue) ?? 0) }
+    for n in children {
+      if n.checked {
+        checkedItems.append(n.text)
+      } else {
+        uncheckedItems.append(n.text)
       }
     }
 
