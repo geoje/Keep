@@ -8,6 +8,7 @@ struct ContentView: View {
 
   @State private var accountManager: AccountManager
   @State private var syncTimer: Timer? = nil
+  @State private var syncRotation: Double = 0
   @State private var updaterController: SPUStandardUpdaterController = {
     SPUStandardUpdaterController(
       startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
@@ -38,14 +39,28 @@ struct ContentView: View {
           onChromeProfile: { Task { await accountManager.handleAddProfileAccount() } }
         )
 
+        let isSyncing = !accountManager.syncingAccounts.isEmpty
         Button(action: { Task { await accountManager.syncAllAccounts() } }) {
           Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
             .font(.system(size: 16))
             .foregroundStyle(.secondary)
             .padding(8)
+            .rotationEffect(.degrees(syncRotation))
         }
         .buttonStyle(.plain)
+        .disabled(isSyncing)
         .help("Sync All")
+        .onChange(of: isSyncing) { _, syncing in
+          if syncing {
+            withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
+              syncRotation = 360
+            }
+          } else {
+            withAnimation(.default) {
+              syncRotation = 0
+            }
+          }
+        }
 
         Spacer()
 
@@ -84,4 +99,3 @@ struct ContentView: View {
     }
   }
 }
-
