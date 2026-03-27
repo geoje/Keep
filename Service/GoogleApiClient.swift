@@ -68,7 +68,8 @@ class GoogleApiClient {
       "EncryptedPasswd": masterToken,
       "service":
         "oauth2:https://www.googleapis.com/auth/memento "
-        + "https://www.googleapis.com/auth/reminders",
+        + "https://www.googleapis.com/auth/reminders "
+        + "https://www.googleapis.com/auth/userinfo.profile",
       "source": "android",
       "androidId": "0123456789abcdef",
       "app": "com.google.android.keep",
@@ -177,6 +178,27 @@ class GoogleApiClient {
     let timestamp = Int(Date().timeIntervalSince1970 * 1000)
     let randomInt = UInt32.random(in: 0...UInt32.max)
     return "s--\(timestamp)--\(randomInt)"
+  }
+
+  func fetchProfileURL(accessToken: String) async throws -> String? {
+    let url = URL(string: "https://www.googleapis.com/oauth2/v1/userinfo")!
+    var request = URLRequest(url: url)
+    request.httpMethod = "GET"
+    request.allHTTPHeaderFields = [
+      "Authorization": "OAuth \(accessToken)",
+      "Accept-Encoding": "gzip, deflate",
+      "User-Agent": "github.com/geoje/keep",
+    ]
+
+    let (data, _) = try await URLSession.shared.data(for: request)
+
+    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+      let urlString = json["picture"] as? String
+    else {
+      return nil
+    }
+
+    return urlString
   }
 
   func syncNotes(for account: Account, modelContext: ModelContext) async throws {

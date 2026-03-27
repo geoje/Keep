@@ -28,7 +28,8 @@ struct ContentView: View {
       ScrollView {
         VStack(alignment: .leading, spacing: 0) {
           ForEach(accounts) { account in
-            HStack {
+            HStack(spacing: 8) {
+              accountAvatar(account)
               Text(account.email)
                 .font(.subheadline)
               Spacer()
@@ -65,7 +66,9 @@ struct ContentView: View {
             .padding(8)
         }
         .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
         .fixedSize()
+        .padding(.leading, 4)
         .help("Add Account")
 
         Button(action: { Task { await syncAllAccounts(notify: true) } }) {
@@ -99,7 +102,7 @@ struct ContentView: View {
       }
       .padding(.horizontal, 4)
     }
-    .frame(width: 300, height: 400)
+    .frame(width: 320, height: 480)
     .onAppear {
       requestNotificationPermission()
       loadAccounts()
@@ -124,6 +127,33 @@ struct ContentView: View {
       syncTimer?.invalidate()
       syncTimer = nil
     }
+  }
+
+  private func accountAvatar(_ account: Account) -> some View {
+    Group {
+      if !account.picture.isEmpty, let url = URL(string: account.picture) {
+        AsyncImage(url: url) { phase in
+          switch phase {
+          case .success(let image):
+            image.resizable().scaledToFill()
+              .frame(width: 20, height: 20)
+              .clipShape(Circle())
+          default:
+            placeholderAvatar
+          }
+        }
+        .frame(width: 20, height: 20)
+      } else {
+        placeholderAvatar
+      }
+    }
+  }
+
+  private var placeholderAvatar: some View {
+    Image(systemName: "person.crop.circle.fill")
+      .font(.system(size: 16))
+      .foregroundStyle(.secondary)
+      .frame(width: 20, height: 20)
   }
 
   private func loadAccounts() {
@@ -214,6 +244,19 @@ struct ContentView: View {
 
       try addOrUpdateAccount(email: email, masterToken: masterToken)
       loadAccounts()
+
+      if let account = try? modelContext.fetch(
+        FetchDescriptor<Account>(predicate: #Predicate { $0.email == email })
+      ).first, account.picture.isEmpty {
+        let accessToken = try? await GoogleApiClient.shared.getAccessToken(for: account, modelContext: modelContext)
+        if let token = accessToken,
+          let pictureURL = try? await GoogleApiClient.shared.fetchProfileURL(accessToken: token) {
+          account.picture = pictureURL
+          try? modelContext.save()
+          loadAccounts()
+        }
+      }
+
       sendNotification(title: "Account Added", body: "\(email) has been added")
     } catch {}
   }
@@ -264,8 +307,6 @@ struct ContentView: View {
   }
 
   private func deleteAccount(_ account: Account) {
-    let email = account.email
-
     if !account.profileName.isEmpty {
       try? ChromeProfileService.shared.deleteProfile(profileName: account.profileName)
     }
@@ -282,7 +323,6 @@ struct ContentView: View {
     modelContext.delete(account)
     try? modelContext.save()
     loadAccounts()
-    sendNotification(title: "Account Deleted", body: "\(email) has been deleted")
   }
 
   private func syncAllAccounts(notify: Bool = true) async {
