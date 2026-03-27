@@ -80,7 +80,7 @@ final class AccountManager {
         }
       }
 
-      sendNotification(title: "Account Added", body: "\(email) has been added")
+      sendNotification(title: "Account Added", body: email)
     } catch {}
   }
 
@@ -92,7 +92,7 @@ final class AccountManager {
         masterToken: profile.masterToken
       )
       load()
-      sendNotification(title: "Account Added", body: "\(profile.email) has been added")
+      sendNotification(title: "Account Added", body: profile.email)
     } catch {}
   }
 

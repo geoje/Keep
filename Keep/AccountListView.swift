@@ -6,22 +6,43 @@ struct AccountListView: View {
   let onDelete: (Account) -> Void
 
   @Environment(\.colorScheme) var colorScheme
+  @State private var collapsedAccounts: Set<String> = []
 
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 0) {
         ForEach(accounts) { account in
+          let isCollapsed = collapsedAccounts.contains(account.email)
+
           HStack(spacing: 8) {
-            accountAvatar(account)
-            Text(account.email)
-              .font(.subheadline)
+            HStack(spacing: 6) {
+              accountAvatar(account)
+              Text(account.email)
+                .font(.subheadline)
+              Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                .animation(.easeInOut(duration: 0.2), value: isCollapsed)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+              withAnimation(.easeInOut(duration: 0.2)) {
+                if isCollapsed {
+                  collapsedAccounts.remove(account.email)
+                } else {
+                  collapsedAccounts.insert(account.email)
+                }
+              }
+            }
             Spacer()
             Menu {
               Button(action: { onDelete(account) }) {
                 Text("Delete Account")
               }
             } label: {
-              Image(systemName: "trash")
+              Image(systemName: "xmark")
+                .font(.caption)
                 .foregroundStyle(.secondary)
             }
             .menuStyle(.borderlessButton)
@@ -31,18 +52,23 @@ struct AccountListView: View {
           .padding(.horizontal, 12)
           .padding(.vertical, 8)
 
-          let accountNotes = NoteService.shared.getRootNotes(notes: notes, email: account.email)
-          if !accountNotes.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-              ForEach(accountNotes) { note in
-                noteCard(note, allNotes: notes)
+          if !isCollapsed {
+            let accountNotes = NoteService.shared.getRootNotes(notes: notes, email: account.email)
+            if !accountNotes.isEmpty {
+              MasonryVStack(columns: 2, spacing: 8) {
+                ForEach(accountNotes) { note in
+                  noteCard(note, allNotes: notes)
+                }
               }
+              .padding(.horizontal, 12)
+              .padding(.bottom, 8)
+              .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 8)
           }
 
-          Divider()
+          if account.id != accounts.last?.id {
+            Divider()
+          }
         }
       }
     }
