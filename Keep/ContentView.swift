@@ -23,6 +23,7 @@ struct ContentView: View {
     VStack(spacing: 0) {
       AccountListView(
         accounts: accountManager.accounts,
+        notes: accountManager.notes,
         onDelete: accountManager.deleteAccount
       )
 
@@ -66,7 +67,7 @@ struct ContentView: View {
       }
       .padding(.horizontal, 4)
     }
-    .frame(width: 320, height: 480)
+    .frame(width: 360, height: 480)
     .onAppear {
       accountManager.setup()
 
