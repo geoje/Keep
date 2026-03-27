@@ -27,6 +27,6 @@ struct KeepApp: App {
         Image(systemName: "document.fill")
       }
     }
-    .menuBarExtraStyle(.menu)
+    .menuBarExtraStyle(.window)
   }
 }

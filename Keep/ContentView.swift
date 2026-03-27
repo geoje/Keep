@@ -12,8 +12,6 @@ struct ContentView: View {
   @State private var notes: [Note] = []
   @State private var errorMessages: [String: String] = [:]
   @State private var loadingStates: [String: Bool] = [:]
-  @State private var hoveredEmail: String? = nil
-  @State private var showDeleteConfirm: Bool = false
   @State private var syncTimer: Timer? = nil
   @State private var updaterController: SPUStandardUpdaterController = {
     SPUStandardUpdaterController(
@@ -25,54 +23,83 @@ struct ContentView: View {
   }
 
   var body: some View {
-    Text("Add Account").font(.subheadline).bold()
-    Button("Play Service 🔑") {
-      Task {
-        await handleAddPlayAccount()
+    VStack(spacing: 0) {
+      // Scrollable account list
+      ScrollView {
+        VStack(alignment: .leading, spacing: 0) {
+          ForEach(accounts) { account in
+            HStack {
+              Text(account.email)
+                .font(.subheadline)
+              Spacer()
+              Button(action: { deleteAccount(account) }) {
+                Image(systemName: "trash")
+                  .foregroundStyle(.secondary)
+              }
+              .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            Divider()
+          }
+        }
       }
-    }
-    Button("Chrome Profiles 👤") {
-      Task {
-        await handleAddProfileAccount()
-      }
-    }
-    Divider()
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-    ForEach(accounts) { account in
-      let noteCount = NoteService.shared.getRootNotes(notes: notes, email: account.email).count
-      let hasPlayService = !account.masterToken.isEmpty
-      let hasProfile = !account.profileName.isEmpty
-      let icon = hasPlayService && hasProfile ? "🔑👤" : hasPlayService ? "🔑" : hasProfile ? "👤" : ""
-      let errorMessage = errorMessages[account.email]
-
-      Text("\(account.email) \(icon)").font(.subheadline).bold()
-      if let error = errorMessage {
-        Text(error).font(.subheadline).foregroundStyle(.orange)
-      } else {
-        Text("\(noteCount) Notes").font(.subheadline)
-      }
-      Button("Delete") {
-        deleteAccount(account)
-      }
       Divider()
-    }
 
-    Button(action: {
-      updaterController.checkForUpdates(nil)
-    }) {
-      Label("Check for Updates", systemImage: "arrow.down.circle")
-    }
-    Button(action: {
-      Task { await syncAllAccounts(notify: true) }
-    }) {
-      Label("Sync All", systemImage: "arrow.trianglehead.clockwise.icloud")
-    }
-    Button(action: {
-      NSApplication.shared.terminate(nil)
-    }) {
-      Label("Quit", systemImage: "xmark.rectangle")
-    }
+      // Bottom dock
+      HStack(spacing: 0) {
+        // Add account (leftmost, person icon with menu)
+        Menu {
+          Button("Play Service 🔑") {
+            Task { await handleAddPlayAccount() }
+          }
+          Button("Chrome Profiles 👤") {
+            Task { await handleAddProfileAccount() }
+          }
+        } label: {
+          Image(systemName: "plus")
+            .font(.system(size: 16))
+            .foregroundStyle(.secondary)
+            .padding(8)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help("Add Account")
 
+        Button(action: { Task { await syncAllAccounts(notify: true) } }) {
+          Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
+            .font(.system(size: 16))
+            .foregroundStyle(.secondary)
+            .padding(8)
+        }
+        .buttonStyle(.plain)
+        .help("Sync All")
+
+        Spacer()
+
+        Button(action: { updaterController.checkForUpdates(nil) }) {
+          Image(systemName: "arrow.down.to.line.compact")
+            .font(.system(size: 16))
+            .foregroundStyle(.secondary)
+            .padding(8)
+        }
+        .buttonStyle(.plain)
+        .help("Check for Updates")
+
+        Button(action: { NSApplication.shared.terminate(nil) }) {
+          Image(systemName: "xmark")
+            .font(.system(size: 16))
+            .foregroundStyle(.secondary)
+            .padding(8)
+        }
+        .buttonStyle(.plain)
+        .help("Quit")
+      }
+      .padding(.horizontal, 4)
+    }
+    .frame(width: 300, height: 400)
     .onAppear {
       requestNotificationPermission()
       loadAccounts()
@@ -317,3 +344,4 @@ struct ContentView: View {
     }
   }
 }
+
