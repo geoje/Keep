@@ -21,7 +21,14 @@ struct NoteDetailView: View {
         .textFieldStyle(.plain)
 
       // Content
-      if note.type == "LIST" {
+      if !note.checkedCheckboxesCount.isEmpty && note.type == "LIST" {
+        FlatChecklistEditView(note: note)
+      } else if !note.checkedCheckboxesCount.isEmpty {
+        TextField("Note", text: $note.indexableText, axis: .vertical)
+          .font(.body)
+          .textFieldStyle(.plain)
+          .frame(minHeight: 40, alignment: .topLeading)
+      } else if note.type == "LIST" {
         VStack(alignment: .leading, spacing: 4) {
           ForEach(children) { child in
             ChecklistItemEditRow(item: child)
@@ -85,7 +92,85 @@ struct ChecklistItemEditRow: View {
         .font(.body)
         .textFieldStyle(.plain)
         .foregroundStyle(item.checked ? .secondary : .primary)
-        .strikethrough(item.checked)
+        .overlay(alignment: .leading) {
+          if item.checked {
+            Text(item.text)
+              .font(.body)
+              .foregroundStyle(.clear)
+              .strikethrough(true, color: .secondary)
+              .allowsHitTesting(false)
+          }
+        }
+    }
+  }
+}
+
+struct FlatChecklistEditView: View {
+  @Bindable var note: Note
+
+  private var checkedCount: Int { max(0, Int(note.checkedCheckboxesCount) ?? 0) }
+
+  private var items: [String] {
+    note.indexableText.components(separatedBy: "\n")
+  }
+
+  private func isChecked(at index: Int) -> Bool {
+    index >= items.count - checkedCount
+  }
+
+  private func toggleItem(at index: Int) {
+    var all = items
+    let currently = isChecked(at: index)
+    let item = all.remove(at: index)
+    if currently {
+      all.insert(item, at: max(0, all.count - checkedCount + 1))
+      note.checkedCheckboxesCount = String(max(0, checkedCount - 1))
+    } else {
+      all.append(item)
+      note.checkedCheckboxesCount = String(checkedCount + 1)
+    }
+    note.indexableText = all.joined(separator: "\n")
+  }
+
+  private func updateText(_ newText: String, at index: Int) {
+    var all = items
+    all[index] = newText
+    note.indexableText = all.joined(separator: "\n")
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      ForEach(items.indices, id: \.self) { index in
+        let checked = isChecked(at: index)
+        HStack(spacing: 6) {
+          Button {
+            toggleItem(at: index)
+          } label: {
+            Image(systemName: checked ? "checkmark.square.fill" : "square")
+              .foregroundStyle(.secondary)
+              .opacity(checked ? 1 : 0.4)
+          }
+          .buttonStyle(.plain)
+
+          let binding = Binding<String>(
+            get: { items[index] },
+            set: { updateText($0, at: index) }
+          )
+          TextField("Item", text: binding)
+            .font(.body)
+            .textFieldStyle(.plain)
+            .foregroundStyle(checked ? .secondary : .primary)
+            .overlay(alignment: .leading) {
+              if checked {
+                Text(items[index])
+                  .font(.body)
+                  .foregroundStyle(.clear)
+                  .strikethrough(true, color: .secondary)
+                  .allowsHitTesting(false)
+              }
+            }
+        }
+      }
     }
   }
 }
