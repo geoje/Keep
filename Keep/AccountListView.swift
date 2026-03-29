@@ -77,7 +77,7 @@ struct AccountListView: View {
               }
               .padding(.horizontal, 12)
               .padding(.bottom, 8)
-              .transition(.opacity.combined(with: .move(edge: .top)))
+              .transition(.opacity)
             }
           }
 
@@ -135,23 +135,7 @@ struct AccountListView: View {
   // MARK: - Account Avatar
 
   private func accountAvatar(_ account: Account) -> some View {
-    Group {
-      if !account.picture.isEmpty, let url = URL(string: account.picture) {
-        AsyncImage(url: url) { phase in
-          switch phase {
-          case .success(let image):
-            image.resizable().scaledToFill()
-              .frame(width: 20, height: 20)
-              .clipShape(Circle())
-          default:
-            placeholderAvatar
-          }
-        }
-        .frame(width: 20, height: 20)
-      } else {
-        placeholderAvatar
-      }
-    }
+    CachedProfileImageView(account: account)
   }
 
   private var placeholderAvatar: some View {
@@ -216,5 +200,31 @@ private struct NoteCardView: View {
         .strokeBorder(Color.primary.opacity(isHovered ? 0.4 : 0), lineWidth: 1)
     )
     .onHover { isHovered = $0 }
+  }
+}
+
+private struct CachedProfileImageView: View {
+  let account: Account
+
+  @State private var image: NSImage? = nil
+
+  var body: some View {
+    Group {
+      if let image {
+        Image(nsImage: image)
+          .resizable()
+          .scaledToFill()
+          .frame(width: 20, height: 20)
+          .clipShape(Circle())
+      } else {
+        Image(systemName: "person.crop.circle.fill")
+          .font(.system(size: 16))
+          .foregroundStyle(.secondary)
+          .frame(width: 20, height: 20)
+      }
+    }
+    .task(id: account.email) {
+      image = await GoogleApiClient.shared.getProfilePicture(for: account)
+    }
   }
 }

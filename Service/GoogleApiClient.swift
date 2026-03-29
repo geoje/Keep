@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import SwiftData
 
@@ -199,6 +200,37 @@ class GoogleApiClient {
     }
 
     return urlString
+  }
+
+  func getProfilePicture(for account: Account) async -> NSImage? {
+    let fileManager = FileManager.default
+    guard
+      let bundleIdentifier = Bundle.main.bundleIdentifier,
+      let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+        .first
+    else { return nil }
+    let baseBundleIdentifier = bundleIdentifier.components(separatedBy: ".").prefix(3).joined(
+      separator: ".")
+    let dataDirectory = appSupportURL.appendingPathComponent(baseBundleIdentifier)
+    let localURL = dataDirectory.appendingPathComponent(account.email + ".png")
+
+    if FileManager.default.fileExists(atPath: localURL.path),
+      let data = try? Data(contentsOf: localURL),
+      let image = NSImage(data: data)
+    {
+      return image
+    }
+
+    guard !account.picture.isEmpty, let url = URL(string: account.picture) else { return nil }
+
+    do {
+      let (data, _) = try await URLSession.shared.data(from: url)
+      guard let image = NSImage(data: data) else { return nil }
+      try? data.write(to: localURL)
+      return image
+    } catch {
+      return nil
+    }
   }
 
   func syncNotes(for account: Account, modelContext: ModelContext) async throws {
