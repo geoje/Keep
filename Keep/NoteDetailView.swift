@@ -35,11 +35,7 @@ struct NoteDetailView: View {
           .textFieldStyle(.plain)
           .frame(minHeight: 40, alignment: .topLeading)
       } else if note.type == "LIST" {
-        VStack(alignment: .leading, spacing: 4) {
-          ForEach(children) { child in
-            ChecklistItemEditRow(item: child)
-          }
-        }
+        ChecklistEditView(children: children)
       } else {
         TextField("Note", text: $note.text, axis: .vertical)
           .font(.body)
@@ -121,38 +117,9 @@ struct NoteDetailView: View {
   }
 }
 
-struct ChecklistItemEditRow: View {
-  @Bindable var item: Note
-
-  var body: some View {
-    HStack(spacing: 6) {
-      Button {
-        item.checked.toggle()
-      } label: {
-        Image(systemName: item.checked ? "checkmark.square.fill" : "square")
-          .foregroundStyle(.secondary)
-      }
-      .buttonStyle(.plain)
-
-      TextField("Item", text: $item.text)
-        .font(.body)
-        .textFieldStyle(.plain)
-        .foregroundStyle(item.checked ? .secondary : .primary)
-        .overlay(alignment: .leading) {
-          if item.checked {
-            Text(item.text)
-              .font(.body)
-              .foregroundStyle(.clear)
-              .strikethrough(true, color: .secondary)
-              .allowsHitTesting(false)
-          }
-        }
-    }
-  }
-}
-
 struct FlatChecklistEditView: View {
   @Bindable var note: Note
+  @State private var showChecked = false
 
   private var checkedCount: Int { max(0, Int(note.checkedCheckboxesCount) ?? 0) }
 
@@ -160,15 +127,23 @@ struct FlatChecklistEditView: View {
     note.indexableText.components(separatedBy: "\n")
   }
 
-  private func isChecked(at index: Int) -> Bool {
-    index >= items.count - checkedCount
+  private var uncheckedIndices: [Int] {
+    let total = items.count
+    let start = max(0, total - checkedCount)
+    return Array(0..<start)
+  }
+
+  private var checkedIndices: [Int] {
+    let total = items.count
+    let start = max(0, total - checkedCount)
+    return Array(start..<total)
   }
 
   private func toggleItem(at index: Int) {
+    let isChecked = checkedIndices.contains(index)
     var all = items
-    let currently = isChecked(at: index)
     let item = all.remove(at: index)
-    if currently {
+    if isChecked {
       all.insert(item, at: max(0, all.count - checkedCount + 1))
       note.checkedCheckboxesCount = String(max(0, checkedCount - 1))
     } else {
@@ -184,39 +159,202 @@ struct FlatChecklistEditView: View {
     note.indexableText = all.joined(separator: "\n")
   }
 
+  private func addItem() {
+    var all = items
+    let insertAt = max(0, all.count - checkedCount)
+    all.insert("", at: insertAt)
+    note.indexableText = all.joined(separator: "\n")
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
-      ForEach(items.indices, id: \.self) { index in
-        let checked = isChecked(at: index)
+      // Unchecked items
+      ForEach(uncheckedIndices, id: \.self) { index in
         HStack(spacing: 6) {
           Button {
             toggleItem(at: index)
           } label: {
-            Image(systemName: checked ? "checkmark.square.fill" : "square")
+            Image(systemName: "square")
               .foregroundStyle(.secondary)
-              .opacity(checked ? 1 : 0.4)
+              .opacity(0.4)
           }
           .buttonStyle(.plain)
+          .onHover { inside in
+            NSCursor.pointingHand.set()
+            if !inside { NSCursor.arrow.set() }
+          }
 
           let binding = Binding<String>(
             get: { items[index] },
             set: { updateText($0, at: index) }
           )
-          TextField("Item", text: binding)
+          TextField("", text: binding)
             .font(.body)
             .textFieldStyle(.plain)
-            .foregroundStyle(checked ? .secondary : .primary)
-            .overlay(alignment: .leading) {
-              if checked {
-                Text(items[index])
-                  .font(.body)
-                  .foregroundStyle(.clear)
-                  .strikethrough(true, color: .secondary)
-                  .allowsHitTesting(false)
-              }
-            }
         }
       }
+
+      // Add item button
+      Button {
+        addItem()
+      } label: {
+        HStack(spacing: 6) {
+          Image(systemName: "plus")
+            .foregroundStyle(.secondary)
+            .opacity(0.6)
+          Text("List item")
+            .font(.body)
+            .foregroundStyle(.tertiary)
+        }
+      }
+      .buttonStyle(.plain)
+
+      if checkedCount > 0 {
+        Divider()
+          .padding(.vertical, 4)
+
+        // Checked section toggle
+        Button {
+          withAnimation(.easeInOut(duration: 0.2)) { showChecked.toggle() }
+        } label: {
+          HStack(spacing: 6) {
+            Image(systemName: "chevron.up")
+              .rotationEffect(.degrees(showChecked ? 180 : 0))
+              .foregroundStyle(.secondary)
+              .opacity(0.6)
+            Text("\(checkedCount) Completed item\(checkedCount == 1 ? "" : "s")")
+              .font(.body)
+              .foregroundStyle(.secondary)
+          }
+        }
+        .buttonStyle(.plain)
+
+        if showChecked {
+          ForEach(checkedIndices, id: \.self) { index in
+            HStack(spacing: 6) {
+              Button {
+                toggleItem(at: index)
+              } label: {
+                Image(systemName: "checkmark.square.fill")
+                  .foregroundStyle(.secondary)
+              }
+              .buttonStyle(.plain)
+              .onHover { inside in
+                NSCursor.pointingHand.set()
+                if !inside { NSCursor.arrow.set() }
+              }
+
+              let binding = Binding<String>(
+                get: { items[index] },
+                set: { updateText($0, at: index) }
+              )
+              TextField("", text: binding)
+                .font(.body)
+                .textFieldStyle(.plain)
+                .foregroundStyle(.secondary)
+                .overlay(alignment: .leading) {
+                  Text(items[index])
+                    .font(.body)
+                    .foregroundStyle(.clear)
+                    .strikethrough(true, color: .secondary)
+                    .allowsHitTesting(false)
+                }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+struct ChecklistEditView: View {
+  let children: [Note]
+  @State private var showChecked = false
+
+  private var unchecked: [Note] { children.filter { !$0.checked } }
+  private var checked: [Note] { children.filter { $0.checked } }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      // Unchecked items
+      ForEach(unchecked) { child in
+        ChecklistItemEditRow(item: child)
+      }
+
+      // Add item button
+      Button {
+      } label: {
+        HStack(spacing: 6) {
+          Image(systemName: "plus")
+            .foregroundStyle(.secondary)
+            .opacity(0.6)
+          Text("List item")
+            .font(.body)
+            .foregroundStyle(.tertiary)
+        }
+      }
+      .buttonStyle(.plain)
+
+      if !checked.isEmpty {
+        Divider()
+          .padding(.vertical, 4)
+
+        // Checked section toggle
+        Button {
+          withAnimation(.easeInOut(duration: 0.2)) { showChecked.toggle() }
+        } label: {
+          HStack(spacing: 6) {
+            Image(systemName: "chevron.up")
+              .rotationEffect(.degrees(showChecked ? 180 : 0))
+              .foregroundStyle(.secondary)
+              .opacity(0.6)
+            Text("\(checked.count) Completed item\(checked.count == 1 ? "" : "s")")
+              .font(.body)
+              .foregroundStyle(.secondary)
+          }
+        }
+        .buttonStyle(.plain)
+
+        if showChecked {
+          ForEach(checked) { child in
+            ChecklistItemEditRow(item: child)
+          }
+        }
+      }
+    }
+  }
+}
+
+struct ChecklistItemEditRow: View {
+  @Bindable var item: Note
+
+  var body: some View {
+    HStack(spacing: 6) {
+      Button {
+        item.checked.toggle()
+      } label: {
+        Image(systemName: item.checked ? "checkmark.square.fill" : "square")
+          .foregroundStyle(.secondary)
+      }
+      .buttonStyle(.plain)
+      .onHover { inside in
+        NSCursor.pointingHand.set()
+        if !inside { NSCursor.arrow.set() }
+      }
+
+      TextField("", text: $item.text)
+        .font(.body)
+        .textFieldStyle(.plain)
+        .foregroundStyle(item.checked ? .secondary : .primary)
+        .overlay(alignment: .leading) {
+          if item.checked {
+            Text(item.text)
+              .font(.body)
+              .foregroundStyle(.clear)
+              .strikethrough(true, color: .secondary)
+              .allowsHitTesting(false)
+          }
+        }
     }
   }
 }
