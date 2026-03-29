@@ -7,6 +7,12 @@ struct NoteDetailView: View {
   let onClose: () -> Void
 
   @Environment(\.colorScheme) var colorScheme
+  @State private var showColorPicker = false
+
+  private let colorOptions: [String] = [
+    "", "RED", "ORANGE", "YELLOW", "GREEN", "TEAL",
+    "CERULEAN", "BLUE", "PURPLE", "PINK", "BROWN", "GRAY",
+  ]
 
   private var children: [Note] {
     allNotes.filter { $0.parentId == note.id }
@@ -47,13 +53,16 @@ struct NoteDetailView: View {
       // Bottom toolbar
       HStack(spacing: 0) {
         Button {
+          withAnimation(.spring(duration: 0.2)) {
+            showColorPicker.toggle()
+          }
         } label: {
           Image(systemName: "paintpalette")
             .padding(.horizontal, 8).padding(.vertical, 4)
         }
         Button {
         } label: {
-          Image(systemName: "checklist")
+          Image(systemName: note.type == "LIST" ? "checklist" : "character.text.justify")
             .padding(.horizontal, 8).padding(.vertical, 4)
         }
         Spacer()
@@ -66,6 +75,43 @@ struct NoteDetailView: View {
       .buttonStyle(.plain)
       .foregroundStyle(.secondary)
       .font(.body)
+
+      if showColorPicker {
+        Divider()
+        FlowLayout(spacing: 10) {
+          ForEach(colorOptions, id: \.self) { colorKey in
+            let bgColor = NoteService.shared.noteColor(for: colorKey, colorScheme: colorScheme)
+            Button {
+              note.color = colorKey
+            } label: {
+              Circle()
+                .fill(bgColor)
+                .frame(width: 24, height: 24)
+                .overlay(
+                  Circle()
+                    .strokeBorder(
+                      note.color.uppercased() == colorKey.uppercased()
+                        ? Color.primary : Color.secondary.opacity(0.3),
+                      lineWidth: note.color.uppercased() == colorKey.uppercased() ? 2 : 1
+                    )
+                )
+                .overlay(
+                  Group {
+                    if colorKey.isEmpty {
+                      Image(systemName: "drop.degreesign.slash")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                    }
+                  }
+                )
+            }
+            .buttonStyle(.plain)
+          }
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
+        .transition(.opacity)
+      }
     }
     .frame(maxWidth: .infinity, alignment: .topLeading)
     .padding(10)
