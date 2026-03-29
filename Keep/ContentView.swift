@@ -94,7 +94,6 @@ struct ContentView: View {
       }
       .padding(.horizontal, 4)
     }
-    .frame(width: 360, height: 480)
     .onAppear {
       accountManager.setup()
 
