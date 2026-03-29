@@ -1,5 +1,45 @@
 import SwiftUI
 
+struct NoteFrame: Equatable {
+  let minY: CGFloat
+  let maxY: CGFloat
+}
+
+struct NoteMinYKey: PreferenceKey {
+  static var defaultValue: [String: NoteFrame] = [:]
+  static func reduce(value: inout [String: NoteFrame], nextValue: () -> [String: NoteFrame]) {
+    value.merge(nextValue()) { _, new in new }
+  }
+}
+
+private func makeNoteCard(_ note: Note, allNotes: [Note]) -> some View {
+  let (unchecked, checked, text) = resolveNoteContent(note, allNotes: allNotes)
+  return NoteCardView(
+    uncheckedItems: unchecked, checkedItems: checked, textContent: text, note: note)
+}
+
+private func resolveNoteContent(_ note: Note, allNotes: [Note]) -> ([String], [String], String) {
+  if !note.checkedCheckboxesCount.isEmpty {
+    if note.type == "LIST" {
+      let items = note.indexableText.components(separatedBy: "\n")
+      let checkedCount = max(0, Int(note.checkedCheckboxesCount) ?? 0)
+      return (
+        Array(items.prefix(items.count - checkedCount)), Array(items.suffix(checkedCount)), ""
+      )
+    }
+    return ([], [], note.indexableText)
+  }
+  if note.type == "LIST" {
+    let children = allNotes.filter { $0.parentId == note.id }
+      .sorted { (Int($0.sortValue) ?? 0) > (Int($1.sortValue) ?? 0) }
+    return (
+      children.filter { !$0.checked }.map(\.text), children.filter { $0.checked }.map(\.text), ""
+    )
+  }
+  let childTexts = allNotes.filter { $0.parentId == note.id }.map(\.text)
+  return ([], [], childTexts.isEmpty ? note.text : childTexts.joined(separator: "\n"))
+}
+
 struct AccountListView: View {
   let accounts: [Account]
   let notes: [Note]
@@ -11,6 +51,10 @@ struct AccountListView: View {
   @State private var collapsedAccounts: Set<String> = []
   @Namespace private var noteNamespace
   @State private var selectedNote: Note?
+  // Actual minY of each note card captured from the unselected masonry layout.
+  // Frozen at selection time so expanded layout changes don't clobber them.
+  @State private var noteMinYs: [String: NoteFrame] = [:]
+  @State private var frozenNoteMinYs: [String: NoteFrame] = [:]
 
   var body: some View {
     ScrollView {
@@ -86,6 +130,7 @@ struct AccountListView: View {
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .onPreferenceChange(NoteMinYKey.self) { noteMinYs = $0 }
     .onChange(of: selectedNote) { _, note in
       NoteSelectionState.shared.noteIsSelected = note != nil
     }
@@ -100,95 +145,119 @@ struct AccountListView: View {
       selected.email == account.email,
       let idx = accountNotes.firstIndex(where: { $0.id == selected.id })
     {
-      let before = Array(accountNotes.prefix(idx))
-      let after = Array(accountNotes.suffix(from: idx + 1))
-
-      VStack(alignment: .leading, spacing: 8) {
-        if !before.isEmpty {
-          MasonryVStack(columns: 2, spacing: 8) {
-            ForEach(before) { note in
-              noteCard(note, allNotes: notes)
-                .matchedGeometryEffect(id: note.id, in: noteNamespace)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                  withAnimation(.spring(duration: 0.2)) { selectedNote = note }
-                }
-            }
-          }
-        }
-
-        NoteDetailView(
-          note: selected,
-          allNotes: notes,
-          namespace: noteNamespace,
-          onClose: { withAnimation(.spring(duration: 0.2)) { selectedNote = nil } }
-        )
-
-        if !after.isEmpty {
-          MasonryVStack(columns: 2, spacing: 8) {
-            ForEach(after) { note in
-              noteCard(note, allNotes: notes)
-                .matchedGeometryEffect(id: note.id, in: noteNamespace)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                  withAnimation(.spring(duration: 0.2)) { selectedNote = note }
-                }
-            }
-          }
-        }
-      }
+      ExpandedNoteSectionView(
+        accountNotes: accountNotes,
+        allNotes: notes,
+        selected: selected,
+        selectedIdx: idx,
+        noteMinYs: frozenNoteMinYs,
+        namespace: noteNamespace,
+        onSelectNote: { note in
+          frozenNoteMinYs = noteMinYs
+          withAnimation(.spring(duration: 0.2)) { selectedNote = note }
+        },
+        onClose: { withAnimation(.spring(duration: 0.2)) { selectedNote = nil } }
+      )
     } else {
       MasonryVStack(columns: 2, spacing: 8) {
         ForEach(accountNotes) { note in
-          noteCard(note, allNotes: notes)
+          makeNoteCard(note, allNotes: notes)
+            .background(
+              GeometryReader { geo in
+                let frame = geo.frame(in: .named("masonrySpace"))
+                Color.clear.preference(
+                  key: NoteMinYKey.self,
+                  value: [note.id: NoteFrame(minY: frame.minY, maxY: frame.maxY)]
+                )
+              }
+            )
             .matchedGeometryEffect(id: note.id, in: noteNamespace)
             .contentShape(Rectangle())
             .onTapGesture {
+              frozenNoteMinYs = noteMinYs
               withAnimation(.spring(duration: 0.2)) { selectedNote = note }
             }
         }
       }
+      .coordinateSpace(name: "masonrySpace")
     }
   }
 
-  private func noteCard(_ note: Note, allNotes: [Note]) -> some View {
-    let (uncheckedItems, checkedItems, textContent) = noteContent(note, allNotes: allNotes)
-    return NoteCardView(
-      uncheckedItems: uncheckedItems,
-      checkedItems: checkedItems,
-      textContent: textContent,
-      note: note
-    )
+}
+
+struct ExpandedNoteSectionView: View {
+  let accountNotes: [Note]
+  let allNotes: [Note]
+  let selected: Note
+  let selectedIdx: Int
+  // Actual minY+maxY values captured from the unselected masonry layout.
+  let noteMinYs: [String: NoteFrame]
+  let namespace: Namespace.ID
+  let onSelectNote: (Note) -> Void
+  let onClose: () -> Void
+
+  private var before: [Note] {
+    guard let selFrame = noteMinYs[selected.id] else {
+      // Fallback: all notes before selectedIdx
+      return Array(accountNotes.prefix(selectedIdx))
+    }
+    let selectedMinY = selFrame.minY
+    return accountNotes.filter { note in
+      guard note.id != selected.id else { return false }
+      guard let frame = noteMinYs[note.id] else {
+        return (accountNotes.firstIndex(where: { $0.id == note.id }) ?? selectedIdx) < selectedIdx
+      }
+      // "before" = card ends completely above the selected card's top
+      return frame.maxY <= selectedMinY
+    }
   }
 
-  private func noteContent(_ note: Note, allNotes: [Note]) -> (
-    unchecked: [String], checked: [String], text: String
-  ) {
-    if !note.checkedCheckboxesCount.isEmpty {
-      if note.type == "LIST" {
-        let items = note.indexableText.components(separatedBy: "\n")
-        let checkedCount = max(0, Int(note.checkedCheckboxesCount) ?? 0)
-        let checked = Array(items.suffix(checkedCount))
-        let unchecked = Array(items.prefix(items.count - checkedCount))
-        return (unchecked, checked, "")
-      }
-      return ([], [], note.indexableText)
+  private var after: [Note] {
+    guard let selFrame = noteMinYs[selected.id] else {
+      return Array(accountNotes.suffix(from: selectedIdx + 1))
     }
-
-    if note.type == "LIST" {
-      var unchecked: [String] = []
-      var checked: [String] = []
-      let children = allNotes.filter { $0.parentId == note.id }
-        .sorted { (Int($0.sortValue) ?? 0) > (Int($1.sortValue) ?? 0) }
-      for n in children {
-        if n.checked { checked.append(n.text) } else { unchecked.append(n.text) }
+    let selectedMinY = selFrame.minY
+    return accountNotes.filter { note in
+      guard note.id != selected.id else { return false }
+      guard let frame = noteMinYs[note.id] else {
+        return (accountNotes.firstIndex(where: { $0.id == note.id }) ?? 0) > selectedIdx
       }
-      return (unchecked, checked, "")
+      // "after" = card overlaps with or starts at/below the selected card's top
+      return frame.maxY > selectedMinY
     }
+  }
 
-    let childTexts = allNotes.filter { $0.parentId == note.id }.map { $0.text }
-    let text = childTexts.isEmpty ? note.text : childTexts.joined(separator: "\n")
-    return ([], [], text)
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      if !before.isEmpty {
+        MasonryVStack(columns: 2, spacing: 8) {
+          ForEach(before) { note in
+            makeNoteCard(note, allNotes: allNotes)
+              .matchedGeometryEffect(id: note.id, in: namespace)
+              .contentShape(Rectangle())
+              .onTapGesture { onSelectNote(note) }
+          }
+        }
+      }
+
+      NoteDetailView(
+        note: selected,
+        allNotes: allNotes,
+        namespace: namespace,
+        onClose: onClose
+      )
+
+      if !after.isEmpty {
+        MasonryVStack(columns: 2, spacing: 8) {
+          ForEach(after) { note in
+            makeNoteCard(note, allNotes: allNotes)
+              .matchedGeometryEffect(id: note.id, in: namespace)
+              .contentShape(Rectangle())
+              .onTapGesture { onSelectNote(note) }
+          }
+        }
+      }
+    }
   }
 
 }
