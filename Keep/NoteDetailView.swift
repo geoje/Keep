@@ -119,7 +119,7 @@ struct NoteDetailView: View {
 
 struct FlatChecklistEditView: View {
   @Bindable var note: Note
-  @State private var showChecked = false
+  @State private var showChecked = true
 
   private var checkedCount: Int { max(0, Int(note.checkedCheckboxesCount) ?? 0) }
 
@@ -141,16 +141,16 @@ struct FlatChecklistEditView: View {
 
   private func toggleItem(at index: Int) {
     let isChecked = checkedIndices.contains(index)
+    let newCheckedCount = isChecked ? max(0, checkedCount - 1) : checkedCount + 1
     var all = items
     let item = all.remove(at: index)
     if isChecked {
       all.insert(item, at: max(0, all.count - checkedCount + 1))
-      note.checkedCheckboxesCount = String(max(0, checkedCount - 1))
     } else {
       all.append(item)
-      note.checkedCheckboxesCount = String(checkedCount + 1)
     }
     note.indexableText = all.joined(separator: "\n")
+    note.checkedCheckboxesCount = String(newCheckedCount)
   }
 
   private func updateText(_ newText: String, at index: Int) {
@@ -166,32 +166,29 @@ struct FlatChecklistEditView: View {
     note.indexableText = all.joined(separator: "\n")
   }
 
+  private func deleteItem(at index: Int) {
+    let isChecked = checkedIndices.contains(index)
+    let newCheckedCount = isChecked ? max(0, checkedCount - 1) : checkedCount
+    var all = items
+    all.remove(at: index)
+    note.indexableText = all.joined(separator: "\n")
+    note.checkedCheckboxesCount = String(newCheckedCount)
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       // Unchecked items
       ForEach(uncheckedIndices, id: \.self) { index in
-        HStack(spacing: 6) {
-          Button {
-            toggleItem(at: index)
-          } label: {
-            Image(systemName: "square")
-              .foregroundStyle(.secondary)
-              .opacity(0.4)
-          }
-          .buttonStyle(.plain)
-          .onHover { inside in
-            NSCursor.pointingHand.set()
-            if !inside { NSCursor.arrow.set() }
-          }
-
-          let binding = Binding<String>(
-            get: { items[index] },
-            set: { updateText($0, at: index) }
-          )
-          TextField("", text: binding)
-            .font(.body)
-            .textFieldStyle(.plain)
-        }
+        let binding = Binding<String>(
+          get: { items[index] },
+          set: { updateText($0, at: index) }
+        )
+        FlatChecklistItemRow(
+          isChecked: false,
+          text: binding,
+          onToggle: { toggleItem(at: index) },
+          onDelete: { deleteItem(at: index) }
+        )
       }
 
       // Add item button
@@ -231,35 +228,16 @@ struct FlatChecklistEditView: View {
 
         if showChecked {
           ForEach(checkedIndices, id: \.self) { index in
-            HStack(spacing: 6) {
-              Button {
-                toggleItem(at: index)
-              } label: {
-                Image(systemName: "checkmark.square.fill")
-                  .foregroundStyle(.secondary)
-              }
-              .buttonStyle(.plain)
-              .onHover { inside in
-                NSCursor.pointingHand.set()
-                if !inside { NSCursor.arrow.set() }
-              }
-
-              let binding = Binding<String>(
-                get: { items[index] },
-                set: { updateText($0, at: index) }
-              )
-              TextField("", text: binding)
-                .font(.body)
-                .textFieldStyle(.plain)
-                .foregroundStyle(.secondary)
-                .overlay(alignment: .leading) {
-                  Text(items[index])
-                    .font(.body)
-                    .foregroundStyle(.clear)
-                    .strikethrough(true, color: .secondary)
-                    .allowsHitTesting(false)
-                }
-            }
+            let binding = Binding<String>(
+              get: { items[index] },
+              set: { updateText($0, at: index) }
+            )
+            FlatChecklistItemRow(
+              isChecked: true,
+              text: binding,
+              onToggle: { toggleItem(at: index) },
+              onDelete: { deleteItem(at: index) }
+            )
           }
         }
       }
@@ -327,6 +305,10 @@ struct ChecklistEditView: View {
 
 struct ChecklistItemEditRow: View {
   @Bindable var item: Note
+  var onDelete: (() -> Void)? = nil
+
+  @State private var isHovered = false
+  @FocusState private var isFocused: Bool
 
   var body: some View {
     HStack(spacing: 6) {
@@ -346,6 +328,7 @@ struct ChecklistItemEditRow: View {
         .font(.body)
         .textFieldStyle(.plain)
         .foregroundStyle(item.checked ? .secondary : .primary)
+        .focused($isFocused)
         .overlay(alignment: .leading) {
           if item.checked {
             Text(item.text)
@@ -355,6 +338,72 @@ struct ChecklistItemEditRow: View {
               .allowsHitTesting(false)
           }
         }
+
+      if isHovered || isFocused {
+        Button {
+          onDelete?()
+        } label: {
+          Image(systemName: "xmark")
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
+      }
     }
+    .onHover { inside in isHovered = inside }
+  }
+}
+
+struct FlatChecklistItemRow: View {
+  let isChecked: Bool
+  @Binding var text: String
+  let onToggle: () -> Void
+  let onDelete: () -> Void
+
+  @State private var isHovered = false
+  @FocusState private var isFocused: Bool
+
+  var body: some View {
+    HStack(spacing: 6) {
+      Button {
+        onToggle()
+      } label: {
+        Image(systemName: isChecked ? "checkmark.square.fill" : "square")
+          .foregroundStyle(.secondary)
+          .opacity(isChecked ? 1 : 0.4)
+      }
+      .buttonStyle(.plain)
+      .onHover { inside in
+        NSCursor.pointingHand.set()
+        if !inside { NSCursor.arrow.set() }
+      }
+
+      TextField("", text: $text)
+        .font(.body)
+        .textFieldStyle(.plain)
+        .foregroundStyle(isChecked ? .secondary : .primary)
+        .focused($isFocused)
+        .overlay(alignment: .leading) {
+          if isChecked {
+            Text(text)
+              .font(.body)
+              .foregroundStyle(.clear)
+              .strikethrough(true, color: .secondary)
+              .allowsHitTesting(false)
+          }
+        }
+
+      if isHovered || isFocused {
+        Button {
+          onDelete()
+        } label: {
+          Image(systemName: "xmark")
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
+      }
+    }
+    .onHover { inside in isHovered = inside }
   }
 }
