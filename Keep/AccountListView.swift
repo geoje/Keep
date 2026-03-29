@@ -9,6 +9,8 @@ struct AccountListView: View {
 
   @Environment(\.colorScheme) var colorScheme
   @State private var collapsedAccounts: Set<String> = []
+  @Namespace private var noteNamespace
+  @State private var selectedNote: Note?
 
   var body: some View {
     ScrollView {
@@ -18,7 +20,7 @@ struct AccountListView: View {
 
           HStack(spacing: 8) {
             HStack(spacing: 6) {
-              accountAvatar(account)
+              CachedProfileImageView(account: account)
               Text(account.email)
                 .font(.subheadline)
               Image(systemName: "chevron.right")
@@ -70,14 +72,10 @@ struct AccountListView: View {
           if !isCollapsed {
             let accountNotes = NoteService.shared.getRootNotes(notes: notes, email: account.email)
             if !accountNotes.isEmpty {
-              MasonryVStack(columns: 2, spacing: 8) {
-                ForEach(accountNotes) { note in
-                  noteCard(note, allNotes: notes)
-                }
-              }
-              .padding(.horizontal, 12)
-              .padding(.bottom, 8)
-              .transition(.opacity)
+              noteSection(accountNotes: accountNotes, account: account)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 8)
+                .transition(.opacity)
             }
           }
 
@@ -90,7 +88,62 @@ struct AccountListView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
-  // MARK: - Note Card
+  @ViewBuilder
+  private func noteSection(accountNotes: [Note], account: Account) -> some View {
+    if let selected = selectedNote,
+      selected.email == account.email,
+      let idx = accountNotes.firstIndex(where: { $0.id == selected.id })
+    {
+      let before = Array(accountNotes.prefix(idx))
+      let after = Array(accountNotes.suffix(from: idx + 1))
+
+      VStack(alignment: .leading, spacing: 8) {
+        if !before.isEmpty {
+          MasonryVStack(columns: 2, spacing: 8) {
+            ForEach(before) { note in
+              noteCard(note, allNotes: notes)
+                .matchedGeometryEffect(id: note.id, in: noteNamespace)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                  withAnimation(.spring(duration: 0.35)) { selectedNote = note }
+                }
+            }
+          }
+        }
+
+        NoteDetailView(
+          note: selected,
+          allNotes: notes,
+          namespace: noteNamespace,
+          onClose: { withAnimation(.spring(duration: 0.35)) { selectedNote = nil } }
+        )
+
+        if !after.isEmpty {
+          MasonryVStack(columns: 2, spacing: 8) {
+            ForEach(after) { note in
+              noteCard(note, allNotes: notes)
+                .matchedGeometryEffect(id: note.id, in: noteNamespace)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                  withAnimation(.spring(duration: 0.35)) { selectedNote = note }
+                }
+            }
+          }
+        }
+      }
+    } else {
+      MasonryVStack(columns: 2, spacing: 8) {
+        ForEach(accountNotes) { note in
+          noteCard(note, allNotes: notes)
+            .matchedGeometryEffect(id: note.id, in: noteNamespace)
+            .contentShape(Rectangle())
+            .onTapGesture {
+              withAnimation(.spring(duration: 0.35)) { selectedNote = note }
+            }
+        }
+      }
+    }
+  }
 
   private func noteCard(_ note: Note, allNotes: [Note]) -> some View {
     let (uncheckedItems, checkedItems, textContent) = noteContent(note, allNotes: allNotes)
@@ -132,75 +185,6 @@ struct AccountListView: View {
     return ([], [], text)
   }
 
-  // MARK: - Account Avatar
-
-  private func accountAvatar(_ account: Account) -> some View {
-    CachedProfileImageView(account: account)
-  }
-
-  private var placeholderAvatar: some View {
-    Image(systemName: "person.crop.circle.fill")
-      .font(.system(size: 16))
-      .foregroundStyle(.secondary)
-      .frame(width: 20, height: 20)
-  }
-}
-
-private struct NoteCardView: View {
-  let uncheckedItems: [String]
-  let checkedItems: [String]
-  let textContent: String
-  let note: Note
-
-  @Environment(\.colorScheme) var colorScheme
-  @State private var isHovered = false
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      if !note.title.isEmpty {
-        Text(note.title)
-          .font(.headline)
-          .foregroundColor(.primary)
-      }
-      if uncheckedItems.isEmpty && checkedItems.isEmpty {
-        if !textContent.isEmpty {
-          Text(textContent)
-            .font(.body)
-            .foregroundColor(.primary)
-        }
-      } else {
-        if !uncheckedItems.isEmpty {
-          VStack(alignment: .leading, spacing: 2) {
-            ForEach(uncheckedItems.indices, id: \.self) { index in
-              HStack(spacing: 4) {
-                Image(systemName: "square")
-                  .font(.body)
-                  .foregroundColor(.secondary)
-                  .opacity(0.4)
-                Text(uncheckedItems[index])
-                  .font(.body)
-                  .foregroundColor(.primary)
-              }
-            }
-          }
-        }
-        if !checkedItems.isEmpty {
-          Text("+ \(checkedItems.count) checked item\(checkedItems.count > 1 ? "s" : "")")
-            .font(.body)
-            .foregroundColor(.secondary)
-        }
-      }
-    }
-    .frame(maxWidth: .infinity, alignment: .topLeading)
-    .padding(10)
-    .background(NoteService.shared.noteColor(for: note.color, colorScheme: colorScheme))
-    .clipShape(RoundedRectangle(cornerRadius: 8))
-    .overlay(
-      RoundedRectangle(cornerRadius: 8)
-        .strokeBorder(Color.primary.opacity(isHovered ? 0.4 : 0), lineWidth: 1)
-    )
-    .onHover { isHovered = $0 }
-  }
 }
 
 private struct CachedProfileImageView: View {

@@ -34,10 +34,20 @@ struct ContentView: View {
 
       // Bottom dock
       HStack(spacing: 0) {
-        AddAccountButton(
-          onPlayService: { Task { await accountManager.handleAddPlayAccount() } },
-          onChromeProfile: { Task { await accountManager.handleAddProfileAccount() } }
-        )
+        Menu {
+          Button("Play Service") { Task { await accountManager.handleAddPlayAccount() } }
+          Button("Chrome Profiles") { Task { await accountManager.handleAddProfileAccount() } }
+        } label: {
+          Image(systemName: "plus")
+            .font(.system(size: 16))
+            .foregroundStyle(.secondary)
+            .padding(8)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .padding(.leading, 4)
+        .help("Add Account")
 
         let isSyncing = !accountManager.syncingAccounts.isEmpty
         Button(action: { Task { await accountManager.syncAllAccounts() } }) {
