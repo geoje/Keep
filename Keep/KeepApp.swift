@@ -5,6 +5,25 @@ import Foundation
 import SwiftData
 import SwiftUI
 
+extension Notification.Name {
+  static let deselectNote = Notification.Name("deselectNote")
+}
+
+private class PopoverContentController: NSHostingController<ContentView> {
+  override func cancelOperation(_ sender: Any?) {
+    if NoteSelectionState.shared.noteIsSelected {
+      NotificationCenter.default.post(name: .deselectNote, object: nil)
+    } else {
+      super.cancelOperation(sender)
+    }
+  }
+}
+
+final class NoteSelectionState {
+  static let shared = NoteSelectionState()
+  var noteIsSelected = false
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate {
   var statusItem: NSStatusItem!
   var popover: NSPopover!
@@ -33,7 +52,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     popover.contentSize = NSSize(width: 360, height: 480)
     popover.behavior = .transient
     popover.animates = true
-    popover.contentViewController = NSHostingController(
+    popover.contentViewController = PopoverContentController(
       rootView: ContentView(modelContainer: ModelContainer.shared)
     )
   }

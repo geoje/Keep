@@ -86,6 +86,12 @@ struct AccountListView: View {
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .onChange(of: selectedNote) { _, note in
+      NoteSelectionState.shared.noteIsSelected = note != nil
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .deselectNote)) { _ in
+      withAnimation(.spring(duration: 0.2)) { selectedNote = nil }
+    }
   }
 
   @ViewBuilder
@@ -105,7 +111,7 @@ struct AccountListView: View {
                 .matchedGeometryEffect(id: note.id, in: noteNamespace)
                 .contentShape(Rectangle())
                 .onTapGesture {
-                  withAnimation(.spring(duration: 0.35)) { selectedNote = note }
+                  withAnimation(.spring(duration: 0.2)) { selectedNote = note }
                 }
             }
           }
@@ -115,7 +121,7 @@ struct AccountListView: View {
           note: selected,
           allNotes: notes,
           namespace: noteNamespace,
-          onClose: { withAnimation(.spring(duration: 0.35)) { selectedNote = nil } }
+          onClose: { withAnimation(.spring(duration: 0.2)) { selectedNote = nil } }
         )
 
         if !after.isEmpty {
@@ -125,7 +131,7 @@ struct AccountListView: View {
                 .matchedGeometryEffect(id: note.id, in: noteNamespace)
                 .contentShape(Rectangle())
                 .onTapGesture {
-                  withAnimation(.spring(duration: 0.35)) { selectedNote = note }
+                  withAnimation(.spring(duration: 0.2)) { selectedNote = note }
                 }
             }
           }
@@ -138,7 +144,7 @@ struct AccountListView: View {
             .matchedGeometryEffect(id: note.id, in: noteNamespace)
             .contentShape(Rectangle())
             .onTapGesture {
-              withAnimation(.spring(duration: 0.35)) { selectedNote = note }
+              withAnimation(.spring(duration: 0.2)) { selectedNote = note }
             }
         }
       }
