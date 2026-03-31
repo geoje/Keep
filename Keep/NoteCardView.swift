@@ -49,10 +49,10 @@ struct NoteCardView: View {
     .padding(10)
     .background(NoteService.shared.noteColor(for: note.color, colorScheme: colorScheme))
     .clipShape(RoundedRectangle(cornerRadius: 8))
-    .overlay(
-      RoundedRectangle(cornerRadius: 8)
-        .strokeBorder(Color.primary.opacity(isHovered ? 0.4 : 0), lineWidth: 1)
+    .shadow(
+      color: .black.opacity(isHovered ? 0.4 : 0), radius: isHovered ? 1 : 0, y: isHovered ? 1 : 0
     )
+    .animation(.easeInOut(duration: 0.1), value: isHovered)
     .onHover { isHovered = $0 }
   }
 }
