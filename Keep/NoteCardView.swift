@@ -50,7 +50,8 @@ struct NoteCardView: View {
     .background(NoteService.shared.noteColor(for: note.color, colorScheme: colorScheme))
     .clipShape(RoundedRectangle(cornerRadius: 8))
     .shadow(
-      color: .black.opacity(isHovered ? 0.4 : 0), radius: isHovered ? 1 : 0, y: isHovered ? 1 : 0
+      color: Color.primary.opacity(isHovered ? 0.4 : 0), radius: isHovered ? 1 : 0,
+      y: isHovered ? 1 : 0
     )
     .animation(.easeInOut(duration: 0.1), value: isHovered)
     .onHover { isHovered = $0 }
