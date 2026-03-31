@@ -247,7 +247,7 @@ struct FlatChecklistEditView: View {
 
 struct ChecklistEditView: View {
   let children: [Note]
-  @State private var showChecked = false
+  @State private var showChecked = true
 
   private var unchecked: [Note] { children.filter { !$0.checked } }
   private var checked: [Note] { children.filter { $0.checked } }
