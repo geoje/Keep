@@ -51,10 +51,16 @@ struct NoteCardView: View {
     .clipShape(RoundedRectangle(cornerRadius: 8))
     .overlay(
       RoundedRectangle(cornerRadius: 8)
+        .strokeBorder(
+          Color.primary.opacity(
+            NoteService.shared.noteColor(for: note.color, colorScheme: colorScheme) == .clear
+              ? 0.2 : 0), lineWidth: 1)
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 8)
         .inset(by: -1)
         .strokeBorder(Color.primary.opacity(isHovered ? 0.4 : 0), lineWidth: 1)
     )
-    // .animation(.easeInOut(duration: 0.1), value: isHovered)
     .onHover { isHovered = $0 }
   }
 }

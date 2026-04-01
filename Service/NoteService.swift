@@ -26,7 +26,7 @@ class NoteService {
     case "PINK": return isDark ? Color(hex: "#6b394f") : Color(hex: "#f6e2dd")
     case "BROWN": return isDark ? Color(hex: "#4b443a") : Color(hex: "#e9e3d4")
     case "GRAY": return isDark ? Color(hex: "#232427") : Color(hex: "#efeff1")
-    default: return isDark ? Color(hex: "#202124") : Color(hex: "#ffffff")
+    default: return .clear
     }
   }
 }
