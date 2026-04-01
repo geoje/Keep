@@ -46,6 +46,7 @@ struct AccountListView: View {
   let syncingAccounts: Set<String>
   let errorMessages: [String: String]
   let onDelete: (Account) -> Void
+  let onSync: (Account) -> Void
 
   @Environment(\.colorScheme) var colorScheme
   @State private var collapsedAccounts: Set<String> = []
@@ -131,8 +132,13 @@ struct AccountListView: View {
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .onPreferenceChange(NoteMinYKey.self) { noteMinYs = $0 }
-    .onChange(of: selectedNote) { _, note in
-      NoteSelectionState.shared.noteIsSelected = note != nil
+    .onChange(of: selectedNote) { oldNote, newNote in
+      NoteSelectionState.shared.noteIsSelected = newNote != nil
+      if newNote == nil, let deselected = oldNote,
+        let account = accounts.first(where: { $0.email == deselected.email })
+      {
+        onSync(account)
+      }
     }
     .onReceive(NotificationCenter.default.publisher(for: .deselectNote)) { _ in
       withAnimation(.spring(duration: 0.2)) { selectedNote = nil }

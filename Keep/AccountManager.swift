@@ -111,6 +111,22 @@ final class AccountManager {
     load()
   }
 
+  func syncAccount(_ account: Account) async {
+    guard !account.masterToken.isEmpty else { return }
+    guard !syncingAccounts.contains(account.email) else { return }
+
+    errorMessages[account.email] = nil
+    syncingAccounts.insert(account.email)
+    do {
+      try await GoogleApiClient.shared.syncNotes(for: account, modelContext: modelContext)
+    } catch {
+      errorMessages[account.email] = error.localizedDescription
+    }
+    syncingAccounts.remove(account.email)
+    load()
+    WidgetCenter.shared.reloadAllTimelines()
+  }
+
   func syncAllAccounts() async {
     let playAccounts = accounts.filter { !$0.masterToken.isEmpty }
     let profileAccounts = accounts.filter { !$0.profileName.isEmpty && $0.masterToken.isEmpty }

@@ -9,6 +9,7 @@ class Account {
   var masterToken: String = ""
   var accessToken: String = ""
   var accessTokenExpiry: String = ""
+  var syncVersion: String = ""
 
   init(
     email: String, picture: String = "", profileName: String = "", masterToken: String = "",

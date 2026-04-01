@@ -136,7 +136,12 @@ class GoogleApiClient {
     }
   }
 
-  private func fetchNotes(email: String, accessToken: String) async throws -> [[String: Any]] {
+  private func fetchNotes(
+    email: String,
+    accessToken: String,
+    targetVersion: String? = nil,
+    nodes: [[String: Any]] = []
+  ) async throws -> (toVersion: String, nodes: [[String: Any]]) {
     var request = URLRequest(url: URL(string: "https://www.googleapis.com/notes/v1/changes")!)
     request.httpMethod = "POST"
     request.allHTTPHeaderFields = [
@@ -148,8 +153,8 @@ class GoogleApiClient {
 
     let formatter = ISO8601DateFormatter()
     formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    let requestBody: [String: Any] = [
-      "nodes": [],
+    var requestBody: [String: Any] = [
+      "nodes": nodes,
       "clientTimestamp": formatter.string(from: Date()),
       "requestHeader": [
         "clientSessionId": generateClientSessionId(),
@@ -162,17 +167,30 @@ class GoogleApiClient {
         ],
       ],
     ]
+    if let v = targetVersion { requestBody["targetVersion"] = v }
     request.httpBody = try JSONSerialization.data(withJSONObject: requestBody, options: [])
+
+    print("[fetchNotes] sending \(nodes.count) node(s), targetVersion: \(targetVersion ?? "nil")")
+    if !nodes.isEmpty,
+      let bodyData = request.httpBody,
+      let bodyStr = String(data: bodyData, encoding: .utf8)
+    {
+      print("[fetchNotes] request body: \(bodyStr)")
+    }
 
     let (data, _) = try await URLSession.shared.data(for: request)
 
-    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-      let nodesArray = json["nodes"] as? [[String: Any]]
-    else {
-      return []
+    if let responseStr = String(data: data, encoding: .utf8) {
+      print("[fetchNotes] response: \(responseStr)")
     }
 
-    return nodesArray
+    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+      return ("", [])
+    }
+
+    let toVersion = json["toVersion"] as? String ?? ""
+    let nodesArray = json["nodes"] as? [[String: Any]] ?? []
+    return (toVersion, nodesArray)
   }
 
   private func generateClientSessionId() -> String {
@@ -235,23 +253,72 @@ class GoogleApiClient {
 
   func syncNotes(for account: Account, modelContext: ModelContext) async throws {
     let accessToken = try await getAccessToken(for: account, modelContext: modelContext)
-    let nodesArray = try await fetchNotes(email: account.email, accessToken: accessToken)
-
     let accountEmail = account.email
-    let existingNotes = try modelContext.fetch(
+    let allNotes = try modelContext.fetch(
       FetchDescriptor<Note>(predicate: #Predicate { $0.email == accountEmail })
     )
 
-    for note in existingNotes {
-      modelContext.delete(note)
-    }
+    if account.syncVersion.isEmpty {
+      // Full sync: fetch everything, replace local
+      let (toVersion, nodesArray) = try await fetchNotes(
+        email: accountEmail, accessToken: accessToken)
 
-    let notes = try nodesArray.map { nodeDict in
-      return try Note.parse(dict: nodeDict, email: account.email)
-    }
+      for note in allNotes { modelContext.delete(note) }
 
-    for note in notes {
-      modelContext.insert(note)
+      for nodeDict in nodesArray {
+        let note = try Note.parse(dict: nodeDict, email: accountEmail)
+        modelContext.insert(note)
+      }
+
+      account.syncVersion = toVersion
+    } else {
+      // Delta sync: send dirty notes, merge response
+      var noteById = Dictionary(uniqueKeysWithValues: allNotes.map { ($0.id, $0) })
+
+      var nodesToSend: [[String: Any]] = []
+      var sentIds = Set<String>()
+
+      for note in allNotes where note.isDirty && note.parentId == "root" {
+        if !sentIds.contains(note.id) {
+          nodesToSend.append(note.toApiDict())
+          sentIds.insert(note.id)
+        }
+        for child in allNotes where child.parentId == note.id {
+          if !sentIds.contains(child.id) {
+            nodesToSend.append(child.toApiDict(parentServerId: note.serverId))
+            sentIds.insert(child.id)
+          }
+        }
+      }
+      for note in allNotes where note.isDirty && note.parentId != "root" {
+        if !sentIds.contains(note.id) {
+          let parent = noteById[note.parentId]
+          nodesToSend.append(note.toApiDict(parentServerId: parent?.serverId))
+          sentIds.insert(note.id)
+        }
+      }
+
+      let (toVersion, responseNodes) = try await fetchNotes(
+        email: accountEmail,
+        accessToken: accessToken,
+        targetVersion: account.syncVersion,
+        nodes: nodesToSend
+      )
+
+      for nodeDict in responseNodes {
+        guard let id = nodeDict["id"] as? String else { continue }
+
+        if let existing = noteById[id] {
+          existing.update(from: nodeDict)
+        } else {
+          let note = try Note.parse(dict: nodeDict, email: accountEmail)
+          modelContext.insert(note)
+          noteById[note.id] = note
+        }
+      }
+
+      for id in sentIds { noteById[id]?.isDirty = false }
+      account.syncVersion = toVersion
     }
 
     try modelContext.save()

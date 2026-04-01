@@ -18,6 +18,9 @@ final class Note {
   var checked: Bool = false
   var indexableText: String = ""
   var checkedCheckboxesCount: String = ""
+  var isDirty: Bool = false
+  var serverRevision: String = ""
+  var createdAt: String = ""
 
   init(
     email: String = "",
@@ -34,7 +37,9 @@ final class Note {
     sortValue: String = "",
     checked: Bool = false,
     indexableText: String = "",
-    checkedCheckboxesCount: String = ""
+    checkedCheckboxesCount: String = "",
+    serverRevision: String = "",
+    createdAt: String = ""
   ) {
     self.email = email
     self.id = id
@@ -51,6 +56,8 @@ final class Note {
     self.checked = checked
     self.indexableText = indexableText
     self.checkedCheckboxesCount = checkedCheckboxesCount
+    self.serverRevision = serverRevision
+    self.createdAt = createdAt
   }
 
   static func decode(dict: [String: Any]) -> Note {
@@ -69,8 +76,30 @@ final class Note {
       sortValue: dict["sortValue"] as? String ?? "",
       checked: dict["checked"] as? Bool ?? false,
       indexableText: dict["indexableText"] as? String ?? "",
-      checkedCheckboxesCount: dict["checkedCheckboxesCount"] as? String ?? ""
+      checkedCheckboxesCount: dict["checkedCheckboxesCount"] as? String ?? "",
+      serverRevision: dict["serverRevision"] as? String ?? "",
+      createdAt: dict["createdAt"] as? String ?? ""
     )
+  }
+
+  func update(from dict: [String: Any]) {
+    let timestampsDict = (dict["timestamps"] as? [String: Any]) ?? [:]
+    let previewDataDict = (dict["previewData"] as? [String: Any]) ?? [:]
+
+    if let v = dict["serverId"] as? String { serverId = v }
+    if let v = dict["parentId"] as? String { parentId = v }
+    if let v = dict["type"] as? String { type = v }
+    if let v = dict["title"] as? String { title = v }
+    if let v = dict["text"] as? String { text = v }
+    if let v = dict["color"] as? String { color = v }
+    if let v = dict["isArchived"] as? Bool { isArchived = v }
+    if let v = dict["sortValue"] as? String { sortValue = v }
+    if let v = dict["checked"] as? Bool { checked = v }
+    if let v = timestampsDict["trashed"] as? String { trashed = v }
+    if let v = timestampsDict["created"] as? String { createdAt = v }
+    if let v = dict["baseNoteRevision"] as? String { serverRevision = v }
+    if let v = previewDataDict["checkedCheckboxesCount"] as? String { checkedCheckboxesCount = v }
+    isDirty = false
   }
 
   static func parse(dict: [String: Any], email: String) throws -> Note {
@@ -82,8 +111,59 @@ final class Note {
     mutableDict["trashed"] = timestampsDict["trashed"] as? String ?? ""
     mutableDict["checkedCheckboxesCount"] =
       previewDataDict["checkedCheckboxesCount"] as? String ?? ""
+    mutableDict["serverRevision"] = dict["baseNoteRevision"] as? String ?? ""
+    mutableDict["createdAt"] = timestampsDict["created"] as? String ?? ""
 
     return decode(dict: mutableDict)
+  }
+
+  func toApiDict(parentServerId: String? = nil) -> [String: Any] {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    let now = formatter.string(from: Date())
+    let created = createdAt.isEmpty ? now : createdAt
+
+    let resolvedSortValue =
+      sortValue.isEmpty
+      ? String(Int64.random(in: 1_000_000_000...9_999_999_999))
+      : sortValue
+
+    var dict: [String: Any] = [
+      "id": id,
+      "kind": "notes#node",
+      "type": type,
+      "parentId": parentId,
+      "sortValue": resolvedSortValue,
+      "text": text,
+      "isArchived": isArchived,
+      "timestamps": [
+        "kind": "notes#timestamps",
+        "created": created,
+        "updated": now,
+        "userEdited": now,
+      ],
+      "nodeSettings": [
+        "newListItemPlacement": "BOTTOM",
+        "graveyardState": "COLLAPSED",
+        "checkedListItemsPolicy": "GRAVEYARD",
+      ],
+      "annotationsGroup": ["kind": "notes#annotationsGroup"],
+    ]
+
+    if !serverId.isEmpty { dict["serverId"] = serverId }
+    if !serverRevision.isEmpty { dict["baseNoteRevision"] = serverRevision }
+
+    if parentId == "root" {
+      dict["title"] = title
+      dict["color"] = color.isEmpty ? "DEFAULT" : color
+      dict["isPinned"] = false
+      dict["collaborators"] = [] as [[String: Any]]
+    } else {
+      dict["checked"] = checked
+      if let ps = parentServerId { dict["parentServerId"] = ps }
+    }
+
+    return dict
   }
 
   func encode() -> [String: Any] {

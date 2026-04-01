@@ -27,7 +27,8 @@ struct ContentView: View {
         notes: accountManager.notes,
         syncingAccounts: accountManager.syncingAccounts,
         errorMessages: accountManager.errorMessages,
-        onDelete: accountManager.deleteAccount
+        onDelete: accountManager.deleteAccount,
+        onSync: { account in Task { await accountManager.syncAccount(account) } }
       )
 
       Divider()

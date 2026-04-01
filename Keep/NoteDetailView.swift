@@ -25,22 +25,43 @@ struct NoteDetailView: View {
       TextField("Title", text: $note.title)
         .font(.headline)
         .textFieldStyle(.plain)
+        .onChange(of: note.title) { note.isDirty = true }
 
       // Content
       if !note.checkedCheckboxesCount.isEmpty && note.type == "LIST" {
         FlatChecklistEditView(note: note)
       } else if !note.checkedCheckboxesCount.isEmpty {
-        TextField("Note", text: $note.indexableText, axis: .vertical)
+        TextEditor(text: $note.indexableText)
           .font(.body)
-          .textFieldStyle(.plain)
+          .scrollDisabled(true)
+          .scrollContentBackground(.hidden)
+          .background(.clear)
+          .padding(.horizontal, -5)
           .frame(minHeight: 40, alignment: .topLeading)
+          .onChange(of: note.indexableText) { note.isDirty = true }
       } else if note.type == "LIST" {
         ChecklistEditView(children: children)
-      } else {
-        TextField("Note", text: $note.text, axis: .vertical)
+      } else if let textChild = children.first {
+        TextEditor(text: Bindable(textChild).text)
           .font(.body)
-          .textFieldStyle(.plain)
+          .scrollDisabled(true)
+          .scrollContentBackground(.hidden)
+          .background(.clear)
+          .padding(.horizontal, -5)
           .frame(minHeight: 40, alignment: .topLeading)
+          .onChange(of: textChild.text) {
+            textChild.isDirty = true
+            note.isDirty = true
+          }
+      } else {
+        TextEditor(text: $note.text)
+          .font(.body)
+          .scrollDisabled(true)
+          .scrollContentBackground(.hidden)
+          .background(.clear)
+          .padding(.horizontal, -5)
+          .frame(minHeight: 40, alignment: .topLeading)
+          .onChange(of: note.text) { note.isDirty = true }
       }
 
       Divider()
@@ -79,6 +100,7 @@ struct NoteDetailView: View {
             let bgColor = NoteService.shared.noteColor(for: colorKey, colorScheme: colorScheme)
             Button {
               note.color = colorKey
+              note.isDirty = true
             } label: {
               Circle()
                 .fill(bgColor)
@@ -151,12 +173,14 @@ struct FlatChecklistEditView: View {
     }
     note.indexableText = all.joined(separator: "\n")
     note.checkedCheckboxesCount = String(newCheckedCount)
+    note.isDirty = true
   }
 
   private func updateText(_ newText: String, at index: Int) {
     var all = items
     all[index] = newText
     note.indexableText = all.joined(separator: "\n")
+    note.isDirty = true
   }
 
   private func addItem() {
@@ -164,6 +188,7 @@ struct FlatChecklistEditView: View {
     let insertAt = max(0, all.count - checkedCount)
     all.insert("", at: insertAt)
     note.indexableText = all.joined(separator: "\n")
+    note.isDirty = true
   }
 
   private func deleteItem(at index: Int) {
@@ -173,6 +198,7 @@ struct FlatChecklistEditView: View {
     all.remove(at: index)
     note.indexableText = all.joined(separator: "\n")
     note.checkedCheckboxesCount = String(newCheckedCount)
+    note.isDirty = true
   }
 
   var body: some View {
@@ -314,6 +340,7 @@ struct ChecklistItemEditRow: View {
     HStack(spacing: 6) {
       Button {
         item.checked.toggle()
+        item.isDirty = true
       } label: {
         Image(systemName: item.checked ? "checkmark.square.fill" : "square")
           .foregroundStyle(.secondary)
@@ -329,6 +356,7 @@ struct ChecklistItemEditRow: View {
         .textFieldStyle(.plain)
         .foregroundStyle(item.checked ? .secondary : .primary)
         .focused($isFocused)
+        .onChange(of: item.text) { item.isDirty = true }
         .overlay(alignment: .leading) {
           if item.checked {
             Text(item.text)
