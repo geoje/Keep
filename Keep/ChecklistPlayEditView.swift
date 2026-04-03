@@ -109,7 +109,7 @@ struct ChecklistPlayEditView: View {
     let targetIdx = max(0, min(localOrder.count - 1, Int(rawTarget.rounded())))
     let currentIdx = localOrder.firstIndex(of: note) ?? dragOriginalIdx
     if targetIdx != currentIdx {
-      withAnimation(.spring(duration: 0.15, bounce: 0)) {
+      withAnimation(.easeInOut(duration: 0.2)) {
         localOrder.move(
           fromOffsets: IndexSet(integer: currentIdx),
           toOffset: targetIdx > currentIdx ? targetIdx + 1 : targetIdx
@@ -123,7 +123,7 @@ struct ChecklistPlayEditView: View {
       item.sortValue = String(1_000_000_000 - i * 10_000)
       item.isDirty = true
     }
-    withAnimation {
+    withAnimation(.easeInOut(duration: 0.2)) {
       draggedNote = nil
       dragTransY = 0
     }

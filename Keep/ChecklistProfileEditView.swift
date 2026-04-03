@@ -74,6 +74,7 @@ struct ChecklistProfileEditView: View {
   }
 
   private func toggleChecked(rawIdx: Int) {
+    guard rawIdx < items.count else { return }
     let text = items[rawIdx]
     var all = items
     all.remove(at: rawIdx)
@@ -94,6 +95,7 @@ struct ChecklistProfileEditView: View {
   }
 
   private func deleteChecked(rawIdx: Int) {
+    guard rawIdx < items.count else { return }
     var all = items
     all.remove(at: rawIdx)
     note.indexableText = all.joined(separator: "\n")
@@ -116,7 +118,7 @@ struct ChecklistProfileEditView: View {
     let targetIdx = max(0, min(localOrder.count - 1, Int(rawTarget.rounded())))
     let currentIdx = localOrder.firstIndex(of: item) ?? dragOriginalIdx
     if targetIdx != currentIdx {
-      withAnimation(.spring(duration: 0.15, bounce: 0)) {
+      withAnimation(.easeInOut(duration: 0.2)) {
         localOrder.move(
           fromOffsets: IndexSet(integer: currentIdx),
           toOffset: targetIdx > currentIdx ? targetIdx + 1 : targetIdx
@@ -128,7 +130,7 @@ struct ChecklistProfileEditView: View {
   private func endDrag() {
     uncheckedEditing = localOrder
     syncIndexableText()
-    withAnimation {
+    withAnimation(.easeInOut(duration: 0.2)) {
       draggedItem = nil
       dragTransY = 0
     }
@@ -154,7 +156,8 @@ struct ChecklistProfileEditView: View {
           onDelete: { deleteUnchecked(id: idStr.id) },
           onDragStart: { startDrag(idStr) },
           onDragChange: { updateDrag(translationY: $0) },
-          onDragEnd: { endDrag() }
+          onDragEnd: { endDrag() },
+          isDragActive: isDragging
         )
         .offset(y: isDragging ? fractionalDragOffset(for: idStr) : 0)
         .zIndex(isDragging ? 1 : 0)
@@ -201,8 +204,9 @@ struct ChecklistProfileEditView: View {
         if showChecked {
           ForEach(checkedIndices, id: \.self) { index in
             let binding = Binding<String>(
-              get: { items[index] },
+              get: { index < items.count ? items[index] : "" },
               set: { newText in
+                guard index < items.count else { return }
                 var all = items
                 all[index] = newText
                 note.indexableText = all.joined(separator: "\n")
@@ -231,6 +235,7 @@ private struct ChecklistProfileItemRow: View {
   var onDragStart: (() -> Void)? = nil
   var onDragChange: ((CGFloat) -> Void)? = nil
   var onDragEnd: (() -> Void)? = nil
+  var isDragActive: Bool = false
 
   @State private var isHovered = false
   @FocusState private var isFocused: Bool
@@ -261,7 +266,7 @@ private struct ChecklistProfileItemRow: View {
           }
         }
 
-      if isHovered || isFocused {
+      if isHovered || isFocused || isDragActive {
         if !isChecked {
           Image(systemName: "line.3.horizontal")
             .font(.system(size: 11))
