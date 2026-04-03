@@ -7,17 +7,51 @@ struct ChecklistPlayEditView: View {
   @State private var showChecked = true
   @Environment(\.modelContext) private var modelContext
 
-  private var unchecked: [Note] { children.filter { !$0.checked && $0.deletedAt.isEmpty } }
+  @State private var draggedNote: Note?
+  @State private var dragTransY: CGFloat = 0
+  @State private var dragOriginalIdx: Int = 0
+  @State private var localOrder: [Note] = []
+
+  @State private var rowHeight: CGFloat?
+
+  private var unchecked: [Note] {
+    children.filter { !$0.checked && $0.deletedAt.isEmpty }.sorted {
+      (Int($0.sortValue) ?? 0) > (Int($1.sortValue) ?? 0)
+    }
+  }
   private var checked: [Note] { children.filter { $0.checked && $0.deletedAt.isEmpty } }
+  private var displayUnchecked: [Note] { draggedNote != nil ? localOrder : unchecked }
+
+  private func fractionalDragOffset(for note: Note) -> CGFloat {
+    guard let rowHeight, let currentIdx = localOrder.firstIndex(of: note) else { return 0 }
+    let idealY = CGFloat(dragOriginalIdx) * rowHeight + dragTransY
+    let currentY = CGFloat(currentIdx) * rowHeight
+    return idealY - currentY
+  }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
-      // Unchecked items
-      ForEach(unchecked) { child in
-        ChecklistPlayItemEditRow(item: child, onDelete: { deleteItem(child) })
+      ForEach(displayUnchecked) { child in
+        let isDragging = child == draggedNote
+        ChecklistPlayItemEditRow(
+          item: child,
+          isDragActive: isDragging,
+          onDragStart: { startDrag(child) },
+          onDragChange: { updateDrag(translationY: $0) },
+          onDragEnd: { endDrag() },
+          onDelete: { deleteItem(child) }
+        )
+        .offset(y: isDragging ? fractionalDragOffset(for: child) : 0)
+        .zIndex(isDragging ? 1 : 0)
+        .background(
+          GeometryReader { geo in
+            Color.clear.onAppear {
+              rowHeight = geo.size.height + 4
+            }
+          }
+        )
       }
 
-      // Add item button
       Button {
         addNewItem()
       } label: {
@@ -36,7 +70,6 @@ struct ChecklistPlayEditView: View {
         Divider()
           .padding(.vertical, 4)
 
-        // Checked section toggle
         Button {
           withAnimation(.easeInOut(duration: 0.2)) { showChecked.toggle() }
         } label: {
@@ -58,6 +91,41 @@ struct ChecklistPlayEditView: View {
           }
         }
       }
+    }
+  }
+
+  private func startDrag(_ note: Note) {
+    guard draggedNote == nil else { return }
+    draggedNote = note
+    dragOriginalIdx = unchecked.firstIndex(of: note) ?? 0
+    localOrder = unchecked
+    dragTransY = 0
+  }
+
+  private func updateDrag(translationY: CGFloat) {
+    dragTransY = translationY
+    guard let rowHeight, let note = draggedNote else { return }
+    let rawTarget = CGFloat(dragOriginalIdx) + translationY / rowHeight
+    let targetIdx = max(0, min(localOrder.count - 1, Int(rawTarget.rounded())))
+    let currentIdx = localOrder.firstIndex(of: note) ?? dragOriginalIdx
+    if targetIdx != currentIdx {
+      withAnimation(.spring(duration: 0.15, bounce: 0)) {
+        localOrder.move(
+          fromOffsets: IndexSet(integer: currentIdx),
+          toOffset: targetIdx > currentIdx ? targetIdx + 1 : targetIdx
+        )
+      }
+    }
+  }
+
+  private func endDrag() {
+    for (i, item) in localOrder.enumerated() {
+      item.sortValue = String(1_000_000_000 - i * 10_000)
+      item.isDirty = true
+    }
+    withAnimation {
+      draggedNote = nil
+      dragTransY = 0
     }
   }
 
@@ -94,6 +162,10 @@ struct ChecklistPlayEditView: View {
 
 struct ChecklistPlayItemEditRow: View {
   @Bindable var item: Note
+  var isDragActive: Bool = false
+  var onDragStart: (() -> Void)? = nil
+  var onDragChange: ((CGFloat) -> Void)? = nil
+  var onDragEnd: (() -> Void)? = nil
   var onDelete: (() -> Void)? = nil
 
   @State private var isHovered = false
@@ -109,10 +181,6 @@ struct ChecklistPlayItemEditRow: View {
           .foregroundStyle(.secondary)
       }
       .buttonStyle(.plain)
-      .onHover { inside in
-        NSCursor.pointingHand.set()
-        if !inside { NSCursor.arrow.set() }
-      }
 
       TextField("", text: $item.text)
         .font(.body)
@@ -130,7 +198,23 @@ struct ChecklistPlayItemEditRow: View {
           }
         }
 
-      if isHovered || isFocused {
+      if isHovered || isFocused || isDragActive {
+        if !item.checked {
+          Image(systemName: "line.3.horizontal")
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+            .gesture(
+              DragGesture(minimumDistance: 2, coordinateSpace: .global)
+                .onChanged { value in
+                  onDragStart?()
+                  onDragChange?(value.translation.height)
+                }
+                .onEnded { _ in
+                  onDragEnd?()
+                }
+            )
+        }
+
         Button {
           onDelete?()
         } label: {

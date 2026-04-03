@@ -82,7 +82,6 @@ struct NoteDetailView: View {
           Image(systemName: note.type == "LIST" ? "checklist" : "character.text.justify")
             .padding(.horizontal, 8).padding(.vertical, 4)
         }
-        Spacer()
         Button {
           let formatter = ISO8601DateFormatter()
           formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -93,6 +92,7 @@ struct NoteDetailView: View {
           Image(systemName: "trash")
             .padding(.horizontal, 8).padding(.vertical, 4)
         }
+        Spacer()
         Button(action: onClose) {
           Image(systemName: "xmark")
             .padding(.horizontal, 8).padding(.vertical, 4)

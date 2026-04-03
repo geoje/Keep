@@ -197,3 +197,7 @@ final class Note {
     ]
   }
 }
+
+extension Note: Equatable {
+  static func == (lhs: Note, rhs: Note) -> Bool { lhs.id == rhs.id }
+}
