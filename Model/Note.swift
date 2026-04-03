@@ -9,7 +9,8 @@ final class Note {
   var kind: String = ""
   var parentId: String = ""
   var type: String = ""
-  var trashed: String = ""
+  var trashedAt: String = ""
+  var deletedAt: String = ""
   var title: String = ""
   var text: String = ""
   var isArchived: Bool = false
@@ -29,7 +30,8 @@ final class Note {
     kind: String = "",
     parentId: String = "",
     type: String = "",
-    trashed: String = "",
+    trashedAt: String = "",
+    deletedAt: String = "",
     title: String = "",
     text: String = "",
     isArchived: Bool = false,
@@ -47,7 +49,8 @@ final class Note {
     self.kind = kind
     self.parentId = parentId
     self.type = type
-    self.trashed = trashed
+    self.trashedAt = trashedAt
+    self.deletedAt = deletedAt
     self.title = title
     self.text = text
     self.isArchived = isArchived
@@ -68,7 +71,8 @@ final class Note {
       kind: dict["kind"] as? String ?? "",
       parentId: dict["parentId"] as? String ?? "",
       type: dict["type"] as? String ?? "",
-      trashed: dict["trashed"] as? String ?? "",
+      trashedAt: dict["trashedAt"] as? String ?? "",
+      deletedAt: dict["deletedAt"] as? String ?? "",
       title: dict["title"] as? String ?? "",
       text: dict["text"] as? String ?? "",
       isArchived: dict["isArchived"] as? Bool ?? false,
@@ -95,7 +99,8 @@ final class Note {
     if let v = dict["isArchived"] as? Bool { isArchived = v }
     if let v = dict["sortValue"] as? String { sortValue = v }
     if let v = dict["checked"] as? Bool { checked = v }
-    if let v = timestampsDict["trashed"] as? String { trashed = v }
+    if let v = timestampsDict["trashed"] as? String { trashedAt = v }
+    if let v = timestampsDict["deleted"] as? String { deletedAt = v }
     if let v = timestampsDict["created"] as? String { createdAt = v }
     if let v = dict["baseNoteRevision"] as? String { serverRevision = v }
     if let v = previewDataDict["checkedCheckboxesCount"] as? String { checkedCheckboxesCount = v }
@@ -108,7 +113,8 @@ final class Note {
 
     var mutableDict = dict
     mutableDict["email"] = email
-    mutableDict["trashed"] = timestampsDict["trashed"] as? String ?? ""
+    mutableDict["trashedAt"] = timestampsDict["trashed"] as? String ?? ""
+    mutableDict["deletedAt"] = timestampsDict["deleted"] as? String ?? ""
     mutableDict["checkedCheckboxesCount"] =
       previewDataDict["checkedCheckboxesCount"] as? String ?? ""
     mutableDict["serverRevision"] = dict["baseNoteRevision"] as? String ?? ""
@@ -128,6 +134,15 @@ final class Note {
       ? String(Int64.random(in: 1_000_000_000...9_999_999_999))
       : sortValue
 
+    var timestamps: [String: Any] = [
+      "kind": "notes#timestamps",
+      "created": created,
+      "updated": now,
+      "userEdited": now,
+    ]
+    if !trashedAt.isEmpty { timestamps["trashed"] = trashedAt }
+    if !deletedAt.isEmpty { timestamps["deleted"] = deletedAt }
+
     var dict: [String: Any] = [
       "id": id,
       "kind": "notes#node",
@@ -136,12 +151,7 @@ final class Note {
       "sortValue": resolvedSortValue,
       "text": text,
       "isArchived": isArchived,
-      "timestamps": [
-        "kind": "notes#timestamps",
-        "created": created,
-        "updated": now,
-        "userEdited": now,
-      ],
+      "timestamps": timestamps,
       "nodeSettings": [
         "newListItemPlacement": "BOTTOM",
         "graveyardState": "COLLAPSED",
@@ -174,7 +184,8 @@ final class Note {
       "kind": kind,
       "parentId": parentId,
       "type": type,
-      "trashed": trashed,
+      "trashedAt": trashedAt,
+      "deletedAt": deletedAt,
       "title": title,
       "text": text,
       "isArchived": isArchived,

@@ -178,7 +178,7 @@ private func resolveNoteContent(_ note: Note, allNotes: [Note]) -> ([String], [S
     return ([], [], note.indexableText)
   }
   if note.type == "LIST" {
-    let children = allNotes.filter { $0.parentId == note.id }
+    let children = allNotes.filter { $0.parentId == note.id && $0.deletedAt.isEmpty }
       .sorted { (Int($0.sortValue) ?? 0) > (Int($1.sortValue) ?? 0) }
     return (
       children.filter { !$0.checked }.map(\.text), children.filter { $0.checked }.map(\.text), ""

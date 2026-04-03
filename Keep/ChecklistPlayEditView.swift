@@ -7,14 +7,14 @@ struct ChecklistPlayEditView: View {
   @State private var showChecked = true
   @Environment(\.modelContext) private var modelContext
 
-  private var unchecked: [Note] { children.filter { !$0.checked } }
-  private var checked: [Note] { children.filter { $0.checked } }
+  private var unchecked: [Note] { children.filter { !$0.checked && $0.deletedAt.isEmpty } }
+  private var checked: [Note] { children.filter { $0.checked && $0.deletedAt.isEmpty } }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       // Unchecked items
       ForEach(unchecked) { child in
-        ChecklistPlayItemEditRow(item: child)
+        ChecklistPlayItemEditRow(item: child, onDelete: { deleteItem(child) })
       }
 
       // Add item button
@@ -54,10 +54,21 @@ struct ChecklistPlayEditView: View {
 
         if showChecked {
           ForEach(checked) { child in
-            ChecklistPlayItemEditRow(item: child)
+            ChecklistPlayItemEditRow(item: child, onDelete: { deleteItem(child) })
           }
         }
       }
+    }
+  }
+
+  private func deleteItem(_ item: Note) {
+    if item.serverId.isEmpty {
+      modelContext.delete(item)
+    } else {
+      let formatter = ISO8601DateFormatter()
+      formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+      item.deletedAt = formatter.string(from: Date())
+      item.isDirty = true
     }
   }
 

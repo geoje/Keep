@@ -307,6 +307,10 @@ class GoogleApiClient {
 
       for id in sentIds { noteById[id]?.isDirty = false }
       account.syncVersion = toVersion
+
+      // Clean up locally deleted LIST_ITEMs that the server has acknowledged
+      let deletedItems = allNotes.filter { !$0.deletedAt.isEmpty && $0.type == "LIST_ITEM" }
+      for item in deletedItems { modelContext.delete(item) }
     }
 
     try modelContext.save()
