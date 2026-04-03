@@ -83,6 +83,16 @@ struct NoteDetailView: View {
             .padding(.horizontal, 8).padding(.vertical, 4)
         }
         Spacer()
+        Button {
+          let formatter = ISO8601DateFormatter()
+          formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+          note.trashedAt = formatter.string(from: Date())
+          note.isDirty = true
+          onClose()
+        } label: {
+          Image(systemName: "trash")
+            .padding(.horizontal, 8).padding(.vertical, 4)
+        }
         Button(action: onClose) {
           Image(systemName: "xmark")
             .padding(.horizontal, 8).padding(.vertical, 4)
