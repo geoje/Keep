@@ -1,52 +1,9 @@
+import SwiftData
 import SwiftUI
 
-struct NoteFrame: Equatable {
-  let minY: CGFloat
-  let maxY: CGFloat
-}
-
-struct NoteMinYKey: PreferenceKey {
-  static var defaultValue: [String: NoteFrame] = [:]
-  static func reduce(value: inout [String: NoteFrame], nextValue: () -> [String: NoteFrame]) {
-    value.merge(nextValue()) { _, new in new }
-  }
-}
-
-private func makeNoteCard(_ note: Note, allNotes: [Note]) -> some View {
-  let (unchecked, checked, text) = resolveNoteContent(note, allNotes: allNotes)
-  return NoteCardView(
-    uncheckedItems: unchecked, checkedItems: checked, textContent: text, note: note)
-}
-
-private func resolveNoteContent(_ note: Note, allNotes: [Note]) -> ([String], [String], String) {
-  if !note.checkedCheckboxesCount.isEmpty {
-    if note.type == "LIST" {
-      let items = note.indexableText.components(separatedBy: "\n")
-      let checkedCount = max(0, Int(note.checkedCheckboxesCount) ?? 0)
-      return (
-        Array(items.prefix(items.count - checkedCount)), Array(items.suffix(checkedCount)), ""
-      )
-    }
-    return ([], [], note.indexableText)
-  }
-  if note.type == "LIST" {
-    let children = allNotes.filter { $0.parentId == note.id }
-      .sorted { (Int($0.sortValue) ?? 0) > (Int($1.sortValue) ?? 0) }
-    return (
-      children.filter { !$0.checked }.map(\.text), children.filter { $0.checked }.map(\.text), ""
-    )
-  }
-  let childTexts = allNotes.filter { $0.parentId == note.id }.map(\.text)
-  return ([], [], childTexts.isEmpty ? note.text : childTexts.joined(separator: "\n"))
-}
-
 struct AccountListView: View {
-  let accounts: [Account]
-  let notes: [Note]
-  let syncingAccounts: Set<String>
-  let errorMessages: [String: String]
-  let onDelete: (Account) -> Void
-  let onSync: (Account) -> Void
+  @Query private var accounts: [Account]
+  @Query private var notes: [Note]
 
   @Environment(\.colorScheme) var colorScheme
   @State private var collapsedAccounts: Set<String> = []
@@ -84,7 +41,7 @@ struct AccountListView: View {
                 }
               }
             }
-            if let errorMessage = errorMessages[account.email] {
+            if let errorMessage = AccountService.shared.errorMessages[account.email] {
               Image(systemName: "exclamationmark.triangle.fill")
                 .font(.caption)
                 .foregroundStyle(.yellow)
@@ -92,14 +49,14 @@ struct AccountListView: View {
                 .contentShape(Rectangle())
                 .help(errorMessage)
             }
-            if syncingAccounts.contains(account.email) {
+            if AccountService.shared.syncingAccounts.contains(account.email) {
               ProgressView()
                 .scaleEffect(0.4)
                 .frame(width: 12, height: 12)
             }
             Spacer()
             Menu {
-              Button(action: { onDelete(account) }) {
+              Button(action: { AccountService.shared.deleteAccount(account) }) {
                 Text("Delete Account")
               }
             } label: {
@@ -137,7 +94,7 @@ struct AccountListView: View {
       if newNote == nil, let deselected = oldNote,
         let account = accounts.first(where: { $0.email == deselected.email })
       {
-        onSync(account)
+        Task { await AccountService.shared.syncAccount(account) }
       }
     }
     .onReceive(NotificationCenter.default.publisher(for: .deselectNote)) { _ in
@@ -189,6 +146,46 @@ struct AccountListView: View {
     }
   }
 
+}
+
+struct NoteFrame: Equatable {
+  let minY: CGFloat
+  let maxY: CGFloat
+}
+
+struct NoteMinYKey: PreferenceKey {
+  static var defaultValue: [String: NoteFrame] = [:]
+  static func reduce(value: inout [String: NoteFrame], nextValue: () -> [String: NoteFrame]) {
+    value.merge(nextValue()) { _, new in new }
+  }
+}
+
+private func makeNoteCard(_ note: Note, allNotes: [Note]) -> some View {
+  let (unchecked, checked, text) = resolveNoteContent(note, allNotes: allNotes)
+  return NoteCardView(
+    uncheckedItems: unchecked, checkedItems: checked, textContent: text, note: note)
+}
+
+private func resolveNoteContent(_ note: Note, allNotes: [Note]) -> ([String], [String], String) {
+  if !note.checkedCheckboxesCount.isEmpty {
+    if note.type == "LIST" {
+      let items = note.indexableText.components(separatedBy: "\n")
+      let checkedCount = max(0, Int(note.checkedCheckboxesCount) ?? 0)
+      return (
+        Array(items.prefix(items.count - checkedCount)), Array(items.suffix(checkedCount)), ""
+      )
+    }
+    return ([], [], note.indexableText)
+  }
+  if note.type == "LIST" {
+    let children = allNotes.filter { $0.parentId == note.id }
+      .sorted { (Int($0.sortValue) ?? 0) > (Int($1.sortValue) ?? 0) }
+    return (
+      children.filter { !$0.checked }.map(\.text), children.filter { $0.checked }.map(\.text), ""
+    )
+  }
+  let childTexts = allNotes.filter { $0.parentId == note.id }.map(\.text)
+  return ([], [], childTexts.isEmpty ? note.text : childTexts.joined(separator: "\n"))
 }
 
 struct ExpandedNoteSectionView: View {

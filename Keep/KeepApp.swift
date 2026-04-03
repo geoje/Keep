@@ -52,9 +52,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     popover.contentSize = NSSize(width: 360, height: 480)
     popover.behavior = .transient
     popover.animates = true
-    popover.contentViewController = PopoverContentController(
-      rootView: ContentView(modelContainer: ModelContainer.shared)
-    )
+    popover.contentViewController = PopoverContentController(rootView: ContentView())
   }
 
   @objc func togglePopover() {

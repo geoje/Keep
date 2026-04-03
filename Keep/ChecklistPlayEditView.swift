@@ -1,8 +1,11 @@
+import SwiftData
 import SwiftUI
 
 struct ChecklistPlayEditView: View {
+  let note: Note
   let children: [Note]
   @State private var showChecked = true
+  @Environment(\.modelContext) private var modelContext
 
   private var unchecked: [Note] { children.filter { !$0.checked } }
   private var checked: [Note] { children.filter { $0.checked } }
@@ -16,6 +19,7 @@ struct ChecklistPlayEditView: View {
 
       // Add item button
       Button {
+        addNewItem()
       } label: {
         HStack(spacing: 6) {
           Image(systemName: "plus")
@@ -55,6 +59,25 @@ struct ChecklistPlayEditView: View {
         }
       }
     }
+  }
+
+  private func addNewItem() {
+    let chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+    let randomSuffix = String((0..<12).map { _ in chars.randomElement()! })
+    let newId = "cbx.\(randomSuffix)"
+
+    let currentMinSort = unchecked.compactMap { Int($0.sortValue) }.min() ?? 1_000_000_000
+    let newSortValue = String(currentMinSort - 10_000)
+
+    let newItem = Note(
+      email: note.email,
+      id: newId,
+      parentId: note.id,
+      type: "LIST_ITEM",
+      sortValue: newSortValue
+    )
+    newItem.isDirty = true
+    modelContext.insert(newItem)
   }
 }
 

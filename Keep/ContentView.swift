@@ -4,9 +4,6 @@ import SwiftData
 import SwiftUI
 
 struct ContentView: View {
-  let modelContainer: ModelContainer
-
-  @State private var accountManager: AccountManager
   @State private var syncTimer: Timer? = nil
   @State private var syncRotation: Double = 0
   @State private var updaterController: SPUStandardUpdaterController = {
@@ -14,30 +11,20 @@ struct ContentView: View {
       startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
   }()
 
-  init(modelContainer: ModelContainer) {
-    self.modelContainer = modelContainer
-    self._accountManager = State(
-      wrappedValue: AccountManager(modelContainer: modelContainer))
-  }
-
   var body: some View {
+    let isSyncing = !AccountService.shared.syncingAccounts.isEmpty
     VStack(spacing: 0) {
-      AccountListView(
-        accounts: accountManager.accounts,
-        notes: accountManager.notes,
-        syncingAccounts: accountManager.syncingAccounts,
-        errorMessages: accountManager.errorMessages,
-        onDelete: accountManager.deleteAccount,
-        onSync: { account in Task { await accountManager.syncAccount(account) } }
-      )
+      AccountListView()
 
       Divider()
 
       // Bottom dock
       HStack(spacing: 0) {
         Menu {
-          Button("Play Service") { Task { await accountManager.handleAddPlayAccount() } }
-          Button("Chrome Profiles") { Task { await accountManager.handleAddProfileAccount() } }
+          Button("Play Service") { Task { await AccountService.shared.handleAddPlayAccount() } }
+          Button("Chrome Profiles") {
+            Task { await AccountService.shared.handleAddProfileAccount() }
+          }
         } label: {
           Image(systemName: "plus")
             .font(.system(size: 16))
@@ -50,8 +37,7 @@ struct ContentView: View {
         .padding(.leading, 4)
         .help("Add Account")
 
-        let isSyncing = !accountManager.syncingAccounts.isEmpty
-        Button(action: { Task { await accountManager.syncAllAccounts() } }) {
+        Button(action: { Task { await AccountService.shared.syncAllAccounts() } }) {
           Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
             .font(.system(size: 16))
             .foregroundStyle(.secondary)
@@ -95,12 +81,13 @@ struct ContentView: View {
       }
       .padding(.horizontal, 4)
     }
+    .modelContainer(ModelContainer.shared)
     .onAppear {
-      accountManager.setup()
+      AccountService.shared.setup()
 
       syncTimer?.invalidate()
       syncTimer = Timer.scheduledTimer(withTimeInterval: 900, repeats: true) { _ in
-        Task { await accountManager.syncAllAccounts() }
+        Task { await AccountService.shared.syncAllAccounts() }
       }
     }
     .onDisappear {

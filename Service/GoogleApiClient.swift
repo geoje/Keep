@@ -170,19 +170,7 @@ class GoogleApiClient {
     if let v = targetVersion { requestBody["targetVersion"] = v }
     request.httpBody = try JSONSerialization.data(withJSONObject: requestBody, options: [])
 
-    print("[fetchNotes] sending \(nodes.count) node(s), targetVersion: \(targetVersion ?? "nil")")
-    if !nodes.isEmpty,
-      let bodyData = request.httpBody,
-      let bodyStr = String(data: bodyData, encoding: .utf8)
-    {
-      print("[fetchNotes] request body: \(bodyStr)")
-    }
-
     let (data, _) = try await URLSession.shared.data(for: request)
-
-    if let responseStr = String(data: data, encoding: .utf8) {
-      print("[fetchNotes] response: \(responseStr)")
-    }
 
     guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
       return ("", [])

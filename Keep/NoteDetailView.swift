@@ -40,7 +40,7 @@ struct NoteDetailView: View {
           .frame(minHeight: 40, alignment: .topLeading)
           .onChange(of: note.indexableText) { note.isDirty = true }
       } else if note.type == "LIST" {
-        ChecklistPlayEditView(children: children)
+        ChecklistPlayEditView(note: note, children: children)
       } else if let textChild = children.first {
         TextEditor(text: Bindable(textChild).text)
           .font(.body)

@@ -1,42 +1,26 @@
-import Observation
+import Foundation
 import SwiftData
-import SwiftUI
 import UserNotifications
 import WidgetKit
 
 @MainActor
 @Observable
-final class AccountManager {
-  var accounts: [Account] = []
-  var notes: [Note] = []
+final class AccountService {
+  static let shared = AccountService()
+
   var errorMessages: [String: String] = [:]
   var syncingAccounts: Set<String> = []
 
-  private let modelContainer: ModelContainer
-  private var modelContext: ModelContext { modelContainer.mainContext }
+  private var modelContext: ModelContext { ModelContainer.shared.mainContext }
 
-  init(modelContainer: ModelContainer) {
-    self.modelContainer = modelContainer
-  }
+  private init() {}
 
   func setup() {
     requestNotificationPermission()
-    load()
-
     ChromeProfileService.shared.onAddSuccess = { [weak self] profile in
       Task { await self?.handleProfileAdded(profile: profile) }
     }
     Task { await syncChromeProfiles() }
-  }
-
-  func load() {
-    do {
-      accounts = try modelContext.fetch(FetchDescriptor<Account>())
-      notes = try modelContext.fetch(FetchDescriptor<Note>())
-    } catch {
-      accounts = []
-      notes = []
-    }
   }
 
   func handleAddPlayAccount() async {
@@ -61,9 +45,7 @@ final class AccountManager {
     do {
       let masterToken = try await GoogleApiClient.shared.fetchMasterToken(
         email: email, oauthToken: oauthToken)
-
       try addOrUpdateAccount(email: email, masterToken: masterToken)
-      load()
 
       if let account = try? modelContext.fetch(
         FetchDescriptor<Account>(predicate: #Predicate { $0.email == email })
@@ -75,7 +57,6 @@ final class AccountManager {
         {
           account.picture = pictureURL
           try? modelContext.save()
-          load()
         }
       }
 
@@ -91,7 +72,6 @@ final class AccountManager {
         profileName: profile.profileName,
         masterToken: profile.masterToken
       )
-      load()
       sendNotification(title: "Account Added", body: profile.email)
     } catch {}
   }
@@ -105,10 +85,8 @@ final class AccountManager {
       $0.email == account.email
     }
     existingNotes?.forEach { modelContext.delete($0) }
-
     modelContext.delete(account)
     try? modelContext.save()
-    load()
   }
 
   func syncAccount(_ account: Account) async {
@@ -123,11 +101,11 @@ final class AccountManager {
       errorMessages[account.email] = error.localizedDescription
     }
     syncingAccounts.remove(account.email)
-    load()
     WidgetCenter.shared.reloadAllTimelines()
   }
 
   func syncAllAccounts() async {
+    let accounts = (try? modelContext.fetch(FetchDescriptor<Account>())) ?? []
     let playAccounts = accounts.filter { !$0.masterToken.isEmpty }
     let profileAccounts = accounts.filter { !$0.profileName.isEmpty && $0.masterToken.isEmpty }
 
@@ -155,7 +133,6 @@ final class AccountManager {
       syncingAccounts.remove(account.email)
     }
 
-    load()
     WidgetCenter.shared.reloadAllTimelines()
   }
 
@@ -187,7 +164,6 @@ final class AccountManager {
       }
 
       try modelContext.save()
-      load()
     } catch {}
   }
 
@@ -210,7 +186,6 @@ final class AccountManager {
     }
 
     try modelContext.save()
-    load()
   }
 
   private func requestNotificationPermission() {
