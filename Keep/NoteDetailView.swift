@@ -70,16 +70,29 @@ struct NoteDetailView: View {
       // Bottom toolbar
       HStack(spacing: 0) {
         Button {
+          if !note.checkedCheckboxesCount.isEmpty {
+            if note.type == "LIST" {
+              note.type = "NOTE"
+            } else {
+              note.type = "LIST"
+              if note.checkedCheckboxesCount.isEmpty {
+                note.checkedCheckboxesCount = "0"
+              }
+            }
+            note.isDirty = true
+          } else {
+            // TODO: Play
+          }
+        } label: {
+          Image(systemName: note.type == "LIST" ? "checklist" : "character.text.justify")
+            .padding(.horizontal, 8).padding(.vertical, 4)
+        }
+        Button {
           withAnimation(.spring(duration: 0.2)) {
             showColorPicker.toggle()
           }
         } label: {
           Image(systemName: "paintpalette")
-            .padding(.horizontal, 8).padding(.vertical, 4)
-        }
-        Button {
-        } label: {
-          Image(systemName: note.type == "LIST" ? "checklist" : "character.text.justify")
             .padding(.horizontal, 8).padding(.vertical, 4)
         }
         Button {
