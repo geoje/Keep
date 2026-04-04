@@ -44,7 +44,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       } else {
         button.image = NSImage(systemSymbolName: "note.text", accessibilityDescription: nil)
       }
-      button.action = #selector(togglePopover)
+      button.action = #selector(handleClick)
+      button.sendAction(on: [.leftMouseUp, .rightMouseUp])
       button.target = self
     }
 
@@ -53,6 +54,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     popover.behavior = .transient
     popover.animates = true
     popover.contentViewController = PopoverContentController(rootView: ContentView())
+  }
+
+  @objc func handleClick() {
+    let event = NSApp.currentEvent
+    if event?.type == .rightMouseUp {
+      let menu = NSMenu()
+      let quitItem = NSMenuItem(
+        title: "Quit Keep", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+      quitItem.keyEquivalentModifierMask = .command
+      menu.addItem(quitItem)
+      statusItem.menu = menu
+      statusItem.button?.performClick(nil)
+      statusItem.menu = nil
+    } else {
+      togglePopover()
+    }
   }
 
   @objc func togglePopover() {

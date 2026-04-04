@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 struct NoteDetailView: View {
@@ -6,6 +7,7 @@ struct NoteDetailView: View {
   var namespace: Namespace.ID
   let onClose: () -> Void
 
+  @Environment(\.modelContext) private var modelContext
   @Environment(\.colorScheme) var colorScheme
   @State private var showColorPicker = false
 
@@ -15,8 +17,52 @@ struct NoteDetailView: View {
   ]
 
   private var children: [Note] {
-    allNotes.filter { $0.parentId == note.id }
+    allNotes.filter { $0.parentId == note.id && $0.deletedAt.isEmpty }
       .sorted { (Int($0.sortValue) ?? 0) > (Int($1.sortValue) ?? 0) }
+  }
+
+  private func deleteChild(_ child: Note) {
+    if child.serverId.isEmpty {
+      modelContext.delete(child)
+    } else {
+      let formatter = ISO8601DateFormatter()
+      formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+      child.deletedAt = formatter.string(from: Date())
+      child.isDirty = true
+    }
+  }
+
+  private func makeId() -> String {
+    let chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+    return "cbx." + String((0..<12).map { _ in chars.randomElement()! })
+  }
+
+  private func playListToNote() {
+    let text = children.map { $0.text }.joined(separator: "\n")
+    for child in children { deleteChild(child) }
+    let item = Note(
+      email: note.email, id: makeId(), parentId: note.id, type: "LIST_ITEM",
+      title: "", text: text, sortValue: "1000000000")
+    item.isDirty = true
+    modelContext.insert(item)
+    note.type = "NOTE"
+    note.isDirty = true
+  }
+
+  private func playNoteToList() {
+    let source = children.first?.text ?? note.text
+    let lines = source.components(separatedBy: "\n").filter { !$0.isEmpty }
+    for child in children { deleteChild(child) }
+    note.text = ""
+    for (i, line) in lines.enumerated() {
+      let item = Note(
+        email: note.email, id: makeId(), parentId: note.id, type: "LIST_ITEM",
+        title: "", text: line, sortValue: String(1_000_000_000 - i * 10_000))
+      item.isDirty = true
+      modelContext.insert(item)
+    }
+    note.type = "LIST"
+    note.isDirty = true
   }
 
   var body: some View {
@@ -70,7 +116,13 @@ struct NoteDetailView: View {
       // Bottom toolbar
       HStack(spacing: 0) {
         Button {
-          if !note.checkedCheckboxesCount.isEmpty {
+          if note.checkedCheckboxesCount.isEmpty {
+            if note.type == "LIST" {
+              playListToNote()
+            } else {
+              playNoteToList()
+            }
+          } else {
             if note.type == "LIST" {
               note.type = "NOTE"
             } else {
@@ -80,8 +132,6 @@ struct NoteDetailView: View {
               }
             }
             note.isDirty = true
-          } else {
-            // TODO: Play
           }
         } label: {
           Image(systemName: note.type == "LIST" ? "checklist" : "character.text.justify")

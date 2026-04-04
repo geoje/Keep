@@ -184,7 +184,7 @@ private func resolveNoteContent(_ note: Note, allNotes: [Note]) -> ([String], [S
       children.filter { !$0.checked }.map(\.text), children.filter { $0.checked }.map(\.text), ""
     )
   }
-  let childTexts = allNotes.filter { $0.parentId == note.id }.map(\.text)
+  let childTexts = allNotes.filter { $0.parentId == note.id && $0.deletedAt.isEmpty }.map(\.text)
   return ([], [], childTexts.isEmpty ? note.text : childTexts.joined(separator: "\n"))
 }
 
