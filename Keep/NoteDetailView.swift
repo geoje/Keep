@@ -172,7 +172,9 @@ struct NoteDetailView: View {
           ForEach(colorOptions, id: \.self) { colorKey in
             let bgColor = NoteService.shared.noteColor(for: colorKey, colorScheme: colorScheme)
             Button {
-              note.color = colorKey
+              withAnimation(.easeInOut(duration: 0.2)) {
+                note.color = colorKey
+              }
               note.isDirty = true
             } label: {
               Circle()
@@ -206,14 +208,19 @@ struct NoteDetailView: View {
     }
     .frame(maxWidth: .infinity, alignment: .topLeading)
     .padding(10)
-    .background(NoteService.shared.noteColor(for: note.color, colorScheme: colorScheme))
+    .background(
+      NoteService.shared.noteColor(for: note.color, colorScheme: colorScheme)
+        .animation(.easeInOut(duration: 0.2), value: note.color)
+    )
     .clipShape(RoundedRectangle(cornerRadius: 8))
     .overlay(
       RoundedRectangle(cornerRadius: 8)
         .strokeBorder(
           Color.primary.opacity(
             NoteService.shared.noteColor(for: note.color, colorScheme: colorScheme) == .clear
-              ? 0.2 : 0), lineWidth: 1)
+              ? 0.2 : 0), lineWidth: 1
+        )
+        .animation(.easeInOut(duration: 0.2), value: note.color)
     )
     .matchedGeometryEffect(id: note.id, in: namespace)
   }
