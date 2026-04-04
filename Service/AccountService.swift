@@ -77,9 +77,14 @@ final class AccountService {
   }
 
   func deleteAccount(_ account: Account) {
-    if !account.profileName.isEmpty {
+    let isProfileAccount = !account.profileName.isEmpty
+
+    if isProfileAccount {
       try? ChromeProfileService.shared.deleteProfile(profileName: account.profileName)
     }
+
+    let pictureURL = ModelContainer.dataDirectory.appendingPathComponent(account.email + ".png")
+    try? FileManager.default.removeItem(at: pictureURL)
 
     let existingNotes = try? modelContext.fetch(FetchDescriptor<Note>()).filter {
       $0.email == account.email
@@ -87,6 +92,14 @@ final class AccountService {
     existingNotes?.forEach { modelContext.delete($0) }
     modelContext.delete(account)
     try? modelContext.save()
+
+    if isProfileAccount {
+      let remainingAccounts = (try? modelContext.fetch(FetchDescriptor<Account>())) ?? []
+      let hasProfileAccounts = remainingAccounts.contains { !$0.profileName.isEmpty }
+      if !hasProfileAccounts, let chromeDataDir = ChromeDriverService.shared.getChromeDataDir() {
+        try? FileManager.default.removeItem(at: chromeDataDir)
+      }
+    }
   }
 
   func syncAccount(_ account: Account) async {

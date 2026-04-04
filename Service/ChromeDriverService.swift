@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import SwiftData
 
 class ChromeDriverService: ObservableObject {
   static let shared = ChromeDriverService()
@@ -57,19 +58,7 @@ class ChromeDriverService: ObservableObject {
   }
 
   func getChromeDataDir() -> URL? {
-    guard
-      let appSupportURL = FileManager.default.urls(
-        for: .applicationSupportDirectory, in: .userDomainMask
-      ).first,
-      let bundleIdentifier = Bundle.main.bundleIdentifier
-    else {
-      return nil
-    }
-
-    let chromeDataDir =
-      appSupportURL
-      .appendingPathComponent(bundleIdentifier)
-      .appendingPathComponent("Chrome")
+    let chromeDataDir = ModelContainer.dataDirectory.appendingPathComponent("Chrome")
 
     try? FileManager.default.createDirectory(
       at: chromeDataDir,

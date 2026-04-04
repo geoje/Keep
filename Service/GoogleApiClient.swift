@@ -209,16 +209,7 @@ class GoogleApiClient {
   }
 
   func getProfilePicture(for account: Account) async -> NSImage? {
-    let fileManager = FileManager.default
-    guard
-      let bundleIdentifier = Bundle.main.bundleIdentifier,
-      let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-        .first
-    else { return nil }
-    let baseBundleIdentifier = bundleIdentifier.components(separatedBy: ".").prefix(3).joined(
-      separator: ".")
-    let dataDirectory = appSupportURL.appendingPathComponent(baseBundleIdentifier)
-    let localURL = dataDirectory.appendingPathComponent(account.email + ".png")
+    let localURL = ModelContainer.dataDirectory.appendingPathComponent(account.email + ".png")
 
     if FileManager.default.fileExists(atPath: localURL.path),
       let data = try? Data(contentsOf: localURL),
