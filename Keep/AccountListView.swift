@@ -14,6 +14,7 @@ struct AccountListView: View {
   // Frozen at selection time so expanded layout changes don't clobber them.
   @State private var noteMinYs: [String: NoteFrame] = [:]
   @State private var frozenNoteMinYs: [String: NoteFrame] = [:]
+  @State private var hoveredErrorEmail: String? = nil
 
   var body: some View {
     ScrollView {
@@ -48,7 +49,19 @@ struct AccountListView: View {
                 .foregroundStyle(.yellow)
                 .padding(6)
                 .contentShape(Rectangle())
-                .help(errorMessage)
+                .onHover { isHovering in
+                  hoveredErrorEmail = isHovering ? account.email : nil
+                }
+                .popover(
+                  isPresented: Binding(
+                    get: { hoveredErrorEmail == account.email },
+                    set: { if !$0 { hoveredErrorEmail = nil } }
+                  )
+                ) {
+                  Text(errorMessage)
+                    .font(.caption)
+                    .padding(4)
+                }
             }
             if AccountService.shared.syncingAccounts.contains(account.email) {
               ProgressView()
