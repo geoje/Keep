@@ -134,9 +134,10 @@ struct NoteDetailView: View {
             note.isDirty = true
           }
         } label: {
-          Image(systemName: note.type == "LIST" ? "checklist" : "character.text.justify")
+          Image(systemName: note.type == "LIST" ? "character.text.justify" : "checklist")
             .padding(.horizontal, 8).padding(.vertical, 4)
         }
+        .help(note.type == "LIST" ? "Hide checkboxes" : "Show checkboxes")
         Button {
           withAnimation(.spring(duration: 0.2)) {
             showColorPicker.toggle()
@@ -145,6 +146,7 @@ struct NoteDetailView: View {
           Image(systemName: "paintpalette")
             .padding(.horizontal, 8).padding(.vertical, 4)
         }
+        .help("Background colors")
         Button {
           let formatter = ISO8601DateFormatter()
           formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -155,12 +157,14 @@ struct NoteDetailView: View {
           Image(systemName: "trash")
             .padding(.horizontal, 8).padding(.vertical, 4)
         }
+        .help("Delete note")
         Spacer()
         Button(action: onClose) {
           Image(systemName: "xmark")
             .padding(.horizontal, 8).padding(.vertical, 4)
         }
         .keyboardShortcut(.escape, modifiers: [])
+        .help("Save & Close")
       }
       .buttonStyle(.plain)
       .foregroundStyle(.secondary)
