@@ -116,7 +116,8 @@ struct AccountListView: View {
     .onChange(of: selectedNote) { oldNote, newNote in
       NoteSelectionState.shared.noteIsSelected = newNote != nil
       if newNote == nil, let deselected = oldNote,
-        let account = accounts.first(where: { $0.email == deselected.email })
+        let account = accounts.first(where: { $0.email == deselected.email }),
+        notes.contains(where: { $0.email == account.email && $0.isDirty })
       {
         Task { await AccountService.shared.syncAccount(account) }
       }
