@@ -5,6 +5,7 @@ struct AccountListView: View {
   @Query private var accounts: [Account]
   @Query private var notes: [Note]
 
+  @Environment(\.modelContext) private var modelContext
   @Environment(\.colorScheme) var colorScheme
   @State private var collapsedAccounts: Set<String> = []
   @Namespace private var noteNamespace
@@ -55,6 +56,15 @@ struct AccountListView: View {
                 .frame(width: 12, height: 12)
             }
             Spacer()
+            Button {
+              addBlankNote(for: account)
+            } label: {
+              Image(systemName: "document.badge.plus")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("New Note")
             Menu {
               Button(action: { AccountService.shared.deleteAccount(account) }) {
                 Text("Delete Account")
@@ -66,6 +76,7 @@ struct AccountListView: View {
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
+            .help("Delete Account")
             .fixedSize()
           }
           .padding(.horizontal, 12)
@@ -100,6 +111,37 @@ struct AccountListView: View {
     .onReceive(NotificationCenter.default.publisher(for: .deselectNote)) { _ in
       withAnimation(.spring(duration: 0.2)) { selectedNote = nil }
     }
+  }
+
+  private func addBlankNote(for account: Account) {
+    let noteId = String(format: "%.9f", Date().timeIntervalSince1970 * 1000)
+    let childId =
+      "sct." + String((0..<12).map { _ in "abcdefghijklmnopqrstuvwxyz0123456789".randomElement()! })
+    let note = Note(
+      email: account.email,
+      id: noteId,
+      parentId: "root",
+      type: "NOTE",
+      sortValue: "1000000000"
+    )
+    note.isDirty = true
+    modelContext.insert(note)
+    let child = Note(
+      email: account.email,
+      id: childId,
+      parentId: noteId,
+      type: "LIST_ITEM",
+      sortValue: "1000000000"
+    )
+    child.isDirty = true
+    modelContext.insert(child)
+    if collapsedAccounts.contains(account.email) {
+      _ = withAnimation(.easeInOut(duration: 0.2)) {
+        collapsedAccounts.remove(account.email)
+      }
+    }
+    frozenNoteMinYs = noteMinYs
+    withAnimation(.spring(duration: 0.2)) { selectedNote = note }
   }
 
   @ViewBuilder

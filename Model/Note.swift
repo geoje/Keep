@@ -170,7 +170,7 @@ final class Note {
       dict["collaborators"] = [] as [[String: Any]]
     } else {
       dict["checked"] = checked
-      if let ps = parentServerId { dict["parentServerId"] = ps }
+      if let ps = parentServerId, !ps.isEmpty { dict["parentServerId"] = ps }
     }
 
     return dict
