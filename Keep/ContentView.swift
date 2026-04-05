@@ -56,18 +56,6 @@ struct ContentView: View {
         } label: {
           Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
             .foregroundStyle(.secondary)
-            .rotationEffect(.degrees(syncRotation))
-        }
-        .onChange(of: isSyncing) { _, syncing in
-          if syncing {
-            withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
-              syncRotation = 360
-            }
-          } else {
-            withAnimation(.default) {
-              syncRotation = 0
-            }
-          }
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)

@@ -14,7 +14,6 @@ struct AccountListView: View {
   // Frozen at selection time so expanded layout changes don't clobber them.
   @State private var noteMinYs: [String: NoteFrame] = [:]
   @State private var frozenNoteMinYs: [String: NoteFrame] = [:]
-  @State private var hoveredErrorEmail: String? = nil
 
   var body: some View {
     ScrollView {
@@ -24,7 +23,11 @@ struct AccountListView: View {
 
           HStack(spacing: 8) {
             HStack(spacing: 6) {
-              CachedProfileImageView(account: account)
+              CachedProfileImageView(
+                account: account,
+                isSyncing: AccountService.shared.syncingAccounts.contains(account.email),
+                errorMessage: AccountService.shared.errorMessages[account.email]
+              )
               Text(account.email)
                 .font(.subheadline)
               Image(systemName: "chevron.right")
@@ -42,31 +45,6 @@ struct AccountListView: View {
                   collapsedAccounts.insert(account.email)
                 }
               }
-            }
-            if let errorMessage = AccountService.shared.errorMessages[account.email] {
-              Image(systemName: "exclamationmark.triangle.fill")
-                .font(.caption)
-                .foregroundStyle(.yellow)
-                .padding(6)
-                .contentShape(Rectangle())
-                .onHover { isHovering in
-                  hoveredErrorEmail = isHovering ? account.email : nil
-                }
-                .popover(
-                  isPresented: Binding(
-                    get: { hoveredErrorEmail == account.email },
-                    set: { if !$0 { hoveredErrorEmail = nil } }
-                  )
-                ) {
-                  Text(errorMessage)
-                    .font(.caption)
-                    .padding(4)
-                }
-            }
-            if AccountService.shared.syncingAccounts.contains(account.email) {
-              ProgressView()
-                .scaleEffect(0.4)
-                .frame(width: 12, height: 12)
             }
             Spacer()
             Button {
@@ -323,8 +301,11 @@ struct ExpandedNoteSectionView: View {
 
 private struct CachedProfileImageView: View {
   let account: Account
+  var isSyncing: Bool = false
+  var errorMessage: String? = nil
 
   @State private var image: NSImage? = nil
+  @State private var isHoveringError: Bool = false
 
   var body: some View {
     Group {
@@ -332,15 +313,35 @@ private struct CachedProfileImageView: View {
         Image(nsImage: image)
           .resizable()
           .scaledToFill()
-          .frame(width: 20, height: 20)
           .clipShape(Circle())
       } else {
         Image(systemName: "person.crop.circle.fill")
           .font(.system(size: 16))
           .foregroundStyle(.secondary)
-          .frame(width: 20, height: 20)
       }
     }
+    .frame(width: 20, height: 20)
+    .overlay {
+      if isSyncing {
+        Circle()
+          .fill(.background.opacity(0.6))
+        ProgressView()
+          .controlSize(.small)
+      } else if errorMessage != nil {
+        Circle()
+          .fill(.black.opacity(0.6))
+        Image(systemName: "exclamationmark.triangle.fill")
+          .font(.system(size: 10))
+          .foregroundStyle(.yellow)
+          .onHover { isHoveringError = $0 }
+          .popover(isPresented: $isHoveringError) {
+            Text(errorMessage!)
+              .font(.caption)
+              .padding(4)
+          }
+      }
+    }
+    .clipped()
     .task(id: account.email) {
       image = await GoogleApiClient.shared.getProfilePicture(for: account)
     }
