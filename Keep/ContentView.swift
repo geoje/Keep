@@ -21,7 +21,7 @@ struct ContentView: View {
       Divider()
 
       // Bottom dock
-      HStack(spacing: 0) {
+      HStack(spacing: 4) {
         Menu {
           Button("Play Service") { Task { await AccountService.shared.handleAddPlayAccount() } }
           Button("Chrome Profiles") {
@@ -29,18 +29,16 @@ struct ContentView: View {
           }
         } label: {
           Image(systemName: "plus")
-            .font(.system(size: 16))
             .foregroundStyle(.secondary)
-            .padding(8)
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
-        .fixedSize()
-        .padding(.leading, 4)
+        .padding(.vertical, 4)
         .help("Add Account")
 
         Menu {
           Button("Sync now") { Task { await AccountService.shared.syncAllAccounts() } }
+            .disabled(isSyncing)
 
           Divider()
 
@@ -57,16 +55,9 @@ struct ContentView: View {
           }
         } label: {
           Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
-            .font(.system(size: 16))
             .foregroundStyle(.secondary)
-            .padding(8)
             .rotationEffect(.degrees(syncRotation))
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .disabled(isSyncing)
-        .help("Sync")
         .onChange(of: isSyncing) { _, syncing in
           if syncing {
             withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
@@ -78,28 +69,33 @@ struct ContentView: View {
             }
           }
         }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .padding(.vertical, 4)
+        .help("Sync")
 
         Spacer()
 
         Button(action: { updaterController.checkForUpdates(nil) }) {
           Image(systemName: "arrow.down.to.line.compact")
-            .font(.system(size: 16))
+            .font(.system(size: 14))
             .foregroundStyle(.secondary)
-            .padding(8)
         }
         .buttonStyle(.plain)
+        .padding(4)
         .help("Check for Updates")
 
         Button(action: { NSApplication.shared.terminate(nil) }) {
           Image(systemName: "xmark")
-            .font(.system(size: 16))
+            .font(.system(size: 14))
             .foregroundStyle(.secondary)
-            .padding(8)
         }
         .buttonStyle(.plain)
+        .padding(4)
         .help("Quit")
       }
-      .padding(.horizontal, 4)
+      .padding(.horizontal, 8)
+      .padding(.vertical, 4)
     }
     .modelContainer(ModelContainer.shared)
     .onAppear {
