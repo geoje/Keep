@@ -195,7 +195,8 @@ final class AccountService {
       if !profileName.isEmpty { existing.profileName = profileName }
       if !masterToken.isEmpty { existing.masterToken = masterToken }
     } else {
-      modelContext.insert(Account(email: email, profileName: profileName, masterToken: masterToken))
+      modelContext.insert(
+        Account(email: email, picture: picture, profileName: profileName, masterToken: masterToken))
     }
 
     try modelContext.save()
