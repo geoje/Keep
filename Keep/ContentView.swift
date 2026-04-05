@@ -6,6 +6,8 @@ import SwiftUI
 struct ContentView: View {
   @State private var syncTimer: Timer? = nil
   @State private var syncRotation: Double = 0
+  @AppStorage(SyncInterval.userDefaultsKey) private var syncIntervalRaw: String =
+    SyncInterval.defaultValue.rawValue
   @State private var updaterController: SPUStandardUpdaterController = {
     SPUStandardUpdaterController(
       startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
@@ -37,16 +39,34 @@ struct ContentView: View {
         .padding(.leading, 4)
         .help("Add Account")
 
-        Button(action: { Task { await AccountService.shared.syncAllAccounts() } }) {
+        Menu {
+          Button("Sync now") { Task { await AccountService.shared.syncAllAccounts() } }
+
+          Divider()
+
+          ForEach(SyncInterval.allCases, id: \.self) { interval in
+            Button {
+              syncIntervalRaw = interval.rawValue
+            } label: {
+              if interval.rawValue == syncIntervalRaw {
+                Label(interval.title, systemImage: "checkmark")
+              } else {
+                Text(interval.title)
+              }
+            }
+          }
+        } label: {
           Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
             .font(.system(size: 16))
             .foregroundStyle(.secondary)
             .padding(8)
             .rotationEffect(.degrees(syncRotation))
         }
-        .buttonStyle(.plain)
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
         .disabled(isSyncing)
-        .help("Sync All")
+        .help("Sync")
         .onChange(of: isSyncing) { _, syncing in
           if syncing {
             withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
@@ -84,15 +104,24 @@ struct ContentView: View {
     .modelContainer(ModelContainer.shared)
     .onAppear {
       AccountService.shared.setup()
-
-      syncTimer?.invalidate()
-      syncTimer = Timer.scheduledTimer(withTimeInterval: 900, repeats: true) { _ in
-        Task { await AccountService.shared.syncAllAccounts() }
-      }
+      startSyncTimer()
+    }
+    .onChange(of: syncIntervalRaw) {
+      startSyncTimer()
     }
     .onDisappear {
       syncTimer?.invalidate()
       syncTimer = nil
+    }
+  }
+
+  private func startSyncTimer() {
+    syncTimer?.invalidate()
+    syncTimer = nil
+    let interval = SyncInterval(rawValue: syncIntervalRaw) ?? SyncInterval.defaultValue
+    guard let seconds = interval.seconds else { return }
+    syncTimer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: true) { _ in
+      Task { await AccountService.shared.syncAllAccounts() }
     }
   }
 }
