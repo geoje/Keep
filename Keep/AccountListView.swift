@@ -49,6 +49,9 @@ struct AccountListView: View {
                   }
                 }
               }
+              if !account.profileName.isEmpty {
+                ProfileAccountInfoButton()
+              }
               Spacer()
               Button {
                 addBlankNote(for: account)
@@ -182,6 +185,25 @@ struct AccountListView: View {
       }
       .coordinateSpace(name: "masonrySpace")
     }
+  }
+}
+
+private struct ProfileAccountInfoButton: View {
+  @State private var isPopoverPresented = false
+
+  var body: some View {
+    Image(systemName: "exclamationmark.circle")
+      .font(.caption)
+      .foregroundStyle(.secondary)
+      .onHover { isPopoverPresented = $0 }
+      .popover(isPresented: $isPopoverPresented) {
+        Text(
+          "Accounts added via Chrome Profile are view-only.\nOther features are currently under development."
+        )
+        .font(.caption)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+      }
   }
 }
 
