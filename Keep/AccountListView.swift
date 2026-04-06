@@ -367,7 +367,7 @@ private struct CachedProfileImageView: View {
       }
     }
     .clipped()
-    .task(id: account.email) {
+    .task(id: account.email + account.picture) {
       image = await GoogleApiClient.shared.getProfilePicture(for: account)
     }
   }
