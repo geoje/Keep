@@ -16,92 +16,96 @@ struct AccountListView: View {
   @State private var frozenNoteMinYs: [String: NoteFrame] = [:]
 
   var body: some View {
-    ScrollView {
-      VStack(alignment: .leading, spacing: 0) {
-        ForEach(accounts) { account in
-          let isCollapsed = collapsedAccounts.contains(account.email)
+    if accounts.isEmpty {
+      EmptyAccountsView()
+    } else {
+      ScrollView {
+        VStack(alignment: .leading, spacing: 0) {
+          ForEach(accounts) { account in
+            let isCollapsed = collapsedAccounts.contains(account.email)
 
-          HStack(spacing: 8) {
-            HStack(spacing: 6) {
-              CachedProfileImageView(
-                account: account,
-                isSyncing: AccountService.shared.syncingAccounts.contains(account.email),
-                errorMessage: AccountService.shared.errorMessages[account.email]
-              )
-              Text(account.email)
-                .font(.subheadline)
-              Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .rotationEffect(.degrees(isCollapsed ? 0 : 90))
-                .animation(.easeInOut(duration: 0.2), value: isCollapsed)
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
-              withAnimation(.easeInOut(duration: 0.2)) {
-                if isCollapsed {
-                  collapsedAccounts.remove(account.email)
-                } else {
-                  collapsedAccounts.insert(account.email)
+            HStack(spacing: 8) {
+              HStack(spacing: 6) {
+                CachedProfileImageView(
+                  account: account,
+                  isSyncing: AccountService.shared.syncingAccounts.contains(account.email),
+                  errorMessage: AccountService.shared.errorMessages[account.email]
+                )
+                Text(account.email)
+                  .font(.subheadline)
+                Image(systemName: "chevron.right")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+                  .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                  .animation(.easeInOut(duration: 0.2), value: isCollapsed)
+              }
+              .contentShape(Rectangle())
+              .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                  if isCollapsed {
+                    collapsedAccounts.remove(account.email)
+                  } else {
+                    collapsedAccounts.insert(account.email)
+                  }
                 }
               }
-            }
-            Spacer()
-            Button {
-              addBlankNote(for: account)
-            } label: {
-              Image(systemName: "document.badge.plus")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            .help("New Note")
-            Menu {
-              Button(action: { AccountService.shared.deleteAccount(account) }) {
-                Text("Delete Account")
+              Spacer()
+              Button {
+                addBlankNote(for: account)
+              } label: {
+                Image(systemName: "document.badge.plus")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
               }
-            } label: {
-              Image(systemName: "xmark")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+              .buttonStyle(.plain)
+              .help("New Note")
+              Menu {
+                Button(action: { AccountService.shared.deleteAccount(account) }) {
+                  Text("Delete Account")
+                }
+              } label: {
+                Image(systemName: "xmark")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+              .menuStyle(.borderlessButton)
+              .menuIndicator(.hidden)
+              .help("Delete Account")
+              .fixedSize()
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .help("Delete Account")
-            .fixedSize()
-          }
-          .padding(.horizontal, 12)
-          .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
 
-          if !isCollapsed {
-            let accountNotes = NoteService.shared.getRootNotes(notes: notes, email: account.email)
-            if !accountNotes.isEmpty {
-              noteSection(accountNotes: accountNotes, account: account)
-                .padding(.horizontal, 12)
-                .padding(.bottom, 8)
-                .transition(.opacity)
+            if !isCollapsed {
+              let accountNotes = NoteService.shared.getRootNotes(notes: notes, email: account.email)
+              if !accountNotes.isEmpty {
+                noteSection(accountNotes: accountNotes, account: account)
+                  .padding(.horizontal, 12)
+                  .padding(.bottom, 8)
+                  .transition(.opacity)
+              }
             }
-          }
 
-          if account.id != accounts.last?.id {
-            Divider()
+            if account.id != accounts.last?.id {
+              Divider()
+            }
           }
         }
       }
-    }
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .onPreferenceChange(NoteMinYKey.self) { noteMinYs = $0 }
-    .onChange(of: selectedNote) { oldNote, newNote in
-      NoteSelectionState.shared.noteIsSelected = newNote != nil
-      if newNote == nil, let deselected = oldNote,
-        let account = accounts.first(where: { $0.email == deselected.email }),
-        notes.contains(where: { $0.email == account.email && $0.isDirty })
-      {
-        Task { await AccountService.shared.syncAccount(account) }
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .onPreferenceChange(NoteMinYKey.self) { noteMinYs = $0 }
+      .onChange(of: selectedNote) { oldNote, newNote in
+        NoteSelectionState.shared.noteIsSelected = newNote != nil
+        if newNote == nil, let deselected = oldNote,
+          let account = accounts.first(where: { $0.email == deselected.email }),
+          notes.contains(where: { $0.email == account.email && $0.isDirty })
+        {
+          Task { await AccountService.shared.syncAccount(account) }
+        }
       }
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .deselectNote)) { _ in
-      withAnimation(.spring(duration: 0.2)) { selectedNote = nil }
+      .onReceive(NotificationCenter.default.publisher(for: .deselectNote)) { _ in
+        withAnimation(.spring(duration: 0.2)) { selectedNote = nil }
+      }
     }
   }
 
@@ -179,7 +183,6 @@ struct AccountListView: View {
       .coordinateSpace(name: "masonrySpace")
     }
   }
-
 }
 
 struct NoteFrame: Equatable {
@@ -345,5 +348,46 @@ private struct CachedProfileImageView: View {
     .task(id: account.email) {
       image = await GoogleApiClient.shared.getProfilePicture(for: account)
     }
+  }
+}
+
+struct EmptyAccountsView: View {
+  var body: some View {
+    VStack(spacing: 16) {
+      Image(systemName: "note.text")
+        .font(.system(size: 48))
+        .foregroundStyle(.secondary)
+
+      Text("Press the + button below to add an account")
+        .multilineTextAlignment(.center)
+        .bold()
+
+      VStack(alignment: .leading, spacing: 8) {
+        HStack(spacing: 4) {
+          Image(systemName: "circle.fill")
+            .font(.system(size: 4))
+          Text("Play Service (Recommended)")
+          Spacer()
+        }
+        Text("Uses unofficial API pretending to be an Android device")
+          .foregroundStyle(.secondary)
+          .font(.caption)
+          .padding(.leading, 10)
+
+        HStack(spacing: 4) {
+          Image(systemName: "circle.fill")
+            .font(.system(size: 4))
+          Text("Chrome Profile (Alternative)")
+          Spacer()
+        }
+        Text("Uses invisible Chrome test browser")
+          .foregroundStyle(.secondary)
+          .font(.caption)
+          .padding(.leading, 10)
+      }
+      .padding(.horizontal)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .padding()
   }
 }

@@ -80,7 +80,7 @@ struct ContentView: View {
         }
         .buttonStyle(.plain)
         .padding(4)
-        .help("Quit")
+        .help("Quit Keep")
       }
       .padding(.horizontal, 8)
       .padding(.vertical, 4)
