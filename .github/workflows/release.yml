@@ -95,6 +95,9 @@ jobs:
 
       - name: Export App
         run: |
+          codesign --force --deep --sign - \
+            --entitlements Keep/Keep.entitlements \
+            .build/Keep.xcarchive/Products/Applications/Keep.app
           cd .build/Keep.xcarchive/Products/Applications
           zip -ry "$GITHUB_WORKSPACE/Keep.zip" Keep.app
 
